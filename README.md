@@ -1,13 +1,14 @@
+<!---
 <p align="center">
 <img src="etc/images/plot_head_trajectories.png" width="800">
 </p>
-
+-->
 
 This repository contains the official pytorch implementation of the paper: 
 
 *"Deep Kernel Transfer in Gaussian Processes for Few-shot Learning" (2019) Patacchiola, Turner, Crowley, and Storkey* [[download paper]]()
 
-Please cite this paper if you use the method or code in this repository as part of a published research project:
+Cite this paper if you use the method or code in this repository as part of a published research project:
 
 ```
 @article{patacchiola2019deep,
@@ -45,7 +46,7 @@ Replace `DATASET_NAME` with one of the following: `omniglot`, `CUB`, `miniImagen
 
 **Methods.** There are a few available methods that you can use: `gpnet`, `maml`, `maml_approx`, `protonet`, `relationnet`, `matchingnet`, `baseline`, `baseline++`. You must use those exact strings at training and test time when you call the script (see below). Note that our method is `gpnet`, and that `baseline` corresponds to feature transfer in our paper. By default GPNet has a linear kernel, to change this please edit the entry in `configs.py`.
 
-**Backbone.** The script allows training and testing on different backbone networks. By default the script will use the same backbone used in our experiments (CNN-4). Check the file `backbone.py` for the available architectures, and use the parameter `--model=BACKBONE_STRING` where `BACKBONE_STRING` is one of the following: `Conv4`, `Conv6`, `ResNet10|18|34|50|101`.
+**Backbone.** The script allows training and testing on different backbone networks. By default the script will use the same backbone used in our experiments (`Conv4`). Check the file `backbone.py` for the available architectures, and use the parameter `--model=BACKBONE_STRING` where `BACKBONE_STRING` is one of the following: `Conv4`, `Conv6`, `ResNet10|18|34|50|101`.
 
 Regression
 -----------
