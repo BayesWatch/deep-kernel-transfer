@@ -23,9 +23,9 @@ class distLinear(nn.Module):
     def __init__(self, indim, outdim):
         super(distLinear, self).__init__()
         self.L = nn.Linear( indim, outdim, bias = False)
-        self.class_wise_learnable_norm = True  #See the issue#4&8 in the github 
-        if self.class_wise_learnable_norm:      
-            WeightNorm.apply(self.L, 'weight', dim=0) #split the weight update component to direction and norm      
+        self.class_wise_learnable_norm = True  #See the issue#4&8 in the github
+        if self.class_wise_learnable_norm:
+            WeightNorm.apply(self.L, 'weight', dim=0) #split the weight update component to direction and norm
 
         if outdim <=200:
             self.scale_factor = 2; #a fixed scale factor to scale the output of cos value into a reasonably large input for softmax
@@ -39,19 +39,19 @@ class distLinear(nn.Module):
             L_norm = torch.norm(self.L.weight.data, p=2, dim =1).unsqueeze(1).expand_as(self.L.weight.data)
             self.L.weight.data = self.L.weight.data.div(L_norm + 0.00001)
         cos_dist = self.L(x_normalized) #matrix product by forward function, but when using WeightNorm, this also multiply the cosine distance by a class-wise learnable norm, see the issue#4&8 in the github
-        scores = self.scale_factor* (cos_dist) 
+        scores = self.scale_factor* (cos_dist)
 
         return scores
 
 class Flatten(nn.Module):
     def __init__(self):
         super(Flatten, self).__init__()
-        
-    def forward(self, x):        
+
+    def forward(self, x):
         return x.view(x.size(0), -1)
 
 
-class Linear_fw(nn.Linear): #used in MAML to forward input with fast weight 
+class Linear_fw(nn.Linear): #used in MAML to forward input with fast weight
     def __init__(self, in_features, out_features):
         super(Linear_fw, self).__init__(in_features, out_features)
         self.weight.fast = None #Lazy hack to add fast weight link
@@ -64,7 +64,7 @@ class Linear_fw(nn.Linear): #used in MAML to forward input with fast weight
             out = super(Linear_fw, self).forward(x)
         return out
 
-class Conv2d_fw(nn.Conv2d): #used in MAML to forward input with fast weight 
+class Conv2d_fw(nn.Conv2d): #used in MAML to forward input with fast weight
     def __init__(self, in_channels, out_channels, kernel_size, stride=1,padding=0, bias = True):
         super(Conv2d_fw, self).__init__(in_channels, out_channels, kernel_size, stride=stride, padding=padding, bias=bias)
         self.weight.fast = None
@@ -84,8 +84,8 @@ class Conv2d_fw(nn.Conv2d): #used in MAML to forward input with fast weight
                 out = super(Conv2d_fw, self).forward(x)
 
         return out
-            
-class BatchNorm2d_fw(nn.BatchNorm2d): #used in MAML to forward input with fast weight 
+
+class BatchNorm2d_fw(nn.BatchNorm2d): #used in MAML to forward input with fast weight
     def __init__(self, num_features):
         super(BatchNorm2d_fw, self).__init__(num_features)
         self.weight.fast = None
@@ -290,7 +290,7 @@ class ConvNetS(nn.Module): #For omniglot, only 1 input channel, output dim is 64
         trunk = []
         for i in range(depth):
             indim = 1 if i == 0 else 64
-            outdim = 64 
+            outdim = 64
             B = ConvBlock(indim, outdim, pool = ( i <4 ) ) #only pooling for fist 4 layers
             trunk.append(B)
 
@@ -375,6 +375,32 @@ class ResNet(nn.Module):
         out = self.trunk(x)
         return out
 
+# Backbone for QMUL regression
+class Conv3(nn.Module):
+    def __init__(self):
+        super(Conv3, self).__init__()
+        self.layer1 = nn.Conv2d(3, 36, 3,stride=2,dilation=2)
+        self.layer2 = nn.Conv2d(36,36, 3,stride=2,dilation=2)
+        self.layer3 = nn.Conv2d(36,36, 3,stride=2,dilation=2)
+
+    def return_clones(self):
+        layer1_w = self.layer1.weight.data.clone().detach()
+        layer2_w = self.layer2.weight.data.clone().detach()
+        layer3_w = self.layer3.weight.data.clone().detach()
+        return [layer1_w, layer2_w, layer3_w]
+
+    def assign_clones(self, weights_list):
+        self.layer1.weight.data.copy_(weights_list[0])
+        self.layer2.weight.data.copy_(weights_list[1])
+        self.layer3.weight.data.copy_(weights_list[2])
+
+    def forward(self, x):
+        out = F.relu(self.layer1(x))
+        out = F.relu(self.layer2(out))
+        out = F.relu(self.layer3(out))
+        out = out.view(out.size(0), -1)
+        return out
+
 def Conv4():
     return ConvNet(4)
 
@@ -407,7 +433,3 @@ def ResNet50( flatten = True):
 
 def ResNet101( flatten = True):
     return ResNet(BottleneckBlock, [3,4,23,3],[256,512,1024,2048], flatten)
-
-
-
-
