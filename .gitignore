@@ -123,3 +123,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# checkpoints
+save/
+filelists/QMUL/*.zip
+filelists/QMUL/images/
+filelists/QMUL/QMUL_360degreeViewSphere_FaceDatabase
+filelists/QMUL/*.json
