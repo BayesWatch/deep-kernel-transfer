@@ -24,7 +24,7 @@ Cite this paper if you use the method or code in this repository as part of a pu
 Requirements
 -------------
 
-1. Python >= 3.0
+1. Python >= 3.x
 2. Numpy >= 1.17
 3. [pyTorch](https://pytorch.org/) >= 1.2.0
 4. [gpyTorch](https://gpytorch.ai/) >= 0.3.5
@@ -34,9 +34,9 @@ Requirements
 GPNet: code of our method
 --------------------------
 
-**Classification.** The implementation of our method is based on the [gpyTorch](https://gpytorch.ai/) library. The code for the classification case is accessible in [gpnet.py](./methods/gpnet.py), with most of the important pieces contained in the `train_loop()` method (training), and in the `correct()` method (testing). 
+**Regression.** The implementation of our method is based on the [gpyTorch](https://gpytorch.ai/) library. The code for the regression case is available in [gpnet_regression.py](./methods/gpnet_regression.py).
 
-**Regression.**
+**Classification.** The code for the classification case is accessible in [gpnet.py](./methods/gpnet.py), with most of the important pieces contained in the `train_loop()` method (training), and in the `correct()` method (testing). 
 
 Note: there is the possibility of using the [scikit](https://scikit-learn.org/stable/modules/gaussian_process.html) Laplace approximation at test time (classification only), setting `laplace=True` in `correct()`. However, this has not been investigated enough and it is not the method used in the paper.
 
@@ -53,7 +53,7 @@ cd filelists/DATASET_NAME/
 sh download_DATASET_NAME.sh
 ```
 
-Replace `DATASET_NAME` with one of the following: `omniglot`, `CUB`, `miniImagenet`, `emnist`, `QMUL`. Notice that miniImagenet is a large dataset that requires substantial storage, therefore you can save the dataset in another location and then change the entry in `configs.py` in accordance.
+Replace `DATASET_NAME` with one of the following: `omniglot`, `CUB`, `miniImagenet`, `emnist`, `QMUL`. Notice that mini-ImageNet is a large dataset that requires substantial storage, therefore you can save the dataset in another location and then change the entry in `configs.py` in accordance.
 
 **Methods.** There are a few available methods that you can use: `gpnet`, `maml`, `maml_approx`, `protonet`, `relationnet`, `matchingnet`, `baseline`, `baseline++`. You must use those exact strings at training and test time when you call the script (see below). Note that our method is `gpnet`, and that `baseline` corresponds to feature transfer in our paper. By default GPNet has a linear kernel, to change this please edit the entry in `configs.py`.
 
@@ -61,6 +61,8 @@ Replace `DATASET_NAME` with one of the following: `omniglot`, `CUB`, `miniImagen
 
 Regression
 -----------
+
+TODO
 
 
 Classification
