@@ -34,9 +34,11 @@ Requirements
 GPNet: code of our method
 --------------------------
 
-The implementation of our method is based on the [gpyTorch](https://gpytorch.ai/) library. The code for the classification case is accessible in [gpnet.py](./methods/gpnet.py), with most of the important pieces contained in the `train_loop()` method (training), and in the `correct()` method (testing). 
+**Classification.** The implementation of our method is based on the [gpyTorch](https://gpytorch.ai/) library. The code for the classification case is accessible in [gpnet.py](./methods/gpnet.py), with most of the important pieces contained in the `train_loop()` method (training), and in the `correct()` method (testing). 
 
-There is the possibility of using a Laplace approximation at test time setting `laplace=False` in `correct()`, but this has not been investigated enough.
+**Regression.**
+
+Note: there is the possibility of using the [scikit](https://scikit-learn.org/stable/modules/gaussian_process.html) Laplace approximation at test time (classification only), setting `laplace=True` in `correct()`. However, this has not been investigated enough and it is not the method used in the paper.
 
 
 Experiments
