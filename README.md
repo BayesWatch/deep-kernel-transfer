@@ -8,6 +8,8 @@ This repository contains the official pytorch implementation of the paper:
 
 *"Deep Kernel Transfer in Gaussian Processes for Few-shot Learning" (2019) Patacchiola, Turner, Crowley, and Storkey* [[download paper]]()
 
+**Overview.** We introduce a Bayesian method based on [Gaussian Processes (GPs)](https://en.wikipedia.org/wiki/Gaussian_process) that can learn efficiently from a limited amount of data and generalize across new tasks and domains. We frame few-shot learning as a model selection problem by learning a *deep kernel* across tasks, and then using this kernel as a covariance function in a GP prior for Bayesian inference. This probabilistic treatment allows for cross-domain flexibility, and uncertainty quantification. We provide substantial experimental evidence, showing that the proposed method is better than several state-of-the-art algorithms in few-shot regression and cross-domain classification.
+
 Cite this paper if you use the method or code in this repository as part of a published research project:
 
 ```
@@ -29,6 +31,13 @@ Requirements
 5. (optional) [TensorboardX](https://pypi.org/project/tensorboardX/) 
 
 
+GPNet: code of our method
+--------------------------
+
+The implementation of our method is based on the [gpyTorch](https://gpytorch.ai/) library. The code for the classification case is accessible in [gpnet.py](./methods/gpnet.py), with most of the important pieces contained in the `train_loop()` method (training), and in the `correct()` method (testing). 
+
+There is the possibility of using a Laplace approximation at test time setting `laplace=False` in `correct()`, but this has not been investigated enough.
+
 
 Experiments
 ============
@@ -42,7 +51,7 @@ cd filelists/DATASET_NAME/
 sh download_DATASET_NAME.sh
 ```
 
-Replace `DATASET_NAME` with one of the following: `omniglot`, `CUB`, `miniImagenet`, `emnist`, `QMUL`. Notice that miniImagenet is a large dataset that requires substantial storage, therefore you can save the dataset in another folder and then change the entry in `configs.py` in accordance.
+Replace `DATASET_NAME` with one of the following: `omniglot`, `CUB`, `miniImagenet`, `emnist`, `QMUL`. Notice that miniImagenet is a large dataset that requires substantial storage, therefore you can save the dataset in another location and then change the entry in `configs.py` in accordance.
 
 **Methods.** There are a few available methods that you can use: `gpnet`, `maml`, `maml_approx`, `protonet`, `relationnet`, `matchingnet`, `baseline`, `baseline++`. You must use those exact strings at training and test time when you call the script (see below). Note that our method is `gpnet`, and that `baseline` corresponds to feature transfer in our paper. By default GPNet has a linear kernel, to change this please edit the entry in `configs.py`.
 
