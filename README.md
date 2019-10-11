@@ -1,3 +1,8 @@
+<p align="center">
+<img src="etc/images/plot_head_trajectories.png" width="800">
+</p>
+
+
 This repository contains the official pytorch implementation of the paper: 
 
 *"Deep Kernel Transfer in Gaussian Processes for Few-shot Learning" (2019) Patacchiola, Turner, Crowley, and Storkey* [[download paper]]()
@@ -52,25 +57,25 @@ Classification
 **Train classification.** The various methods can be trained using the following syntax:
 
 ```
-python3 train.py --dataset="miniImagenet" --method="gpnet" --train_n_way=5 --test_n_way=5 --n_shot=1 --seed=1 --train_aug
+python train.py --dataset="miniImagenet" --method="gpnet" --train_n_way=5 --test_n_way=5 --n_shot=1 --seed=1 --train_aug
 ```
 
-This will train GPNet 5-way 1-shot on the mini-ImageNet dataset with seed 1. The `dataset` string can be one of the following: `CUB`, `miniImagenet`. At training time the best model is evaluated on the validation set and stored as `best_model.tar` in the folder `./save/checkpoints/DATASET_NAME`. The parameter `--train_aug` enables data augmentation.
+This will train GPNet 5-way 1-shot on the mini-ImageNet dataset with seed 1. The `dataset` string can be one of the following: `CUB`, `miniImagenet`. At training time the best model is evaluated on the validation set and stored as `best_model.tar` in the folder `./save/checkpoints/DATASET_NAME`. The parameter `--train_aug` enables data augmentation. The parameter `seed` set the seed for pytorch, numpy, and random. Set `--seed=0` or remove the parameter for a random seed. Additional parameters are reported in the file `io_utils.py`.
 
-**Test classification.** For testing GPNet and MAML it is enough to repeat the train command replacing the call to `train.py` with the call to `test.py` as follows:
-
-```
-python3 test.py --dataset="miniImagenet" --method="gpnet" --train_n_way=5 --test_n_way=5 --n_shot=1 --seed=1 --train_aug
-```
-
-Other methods require to store the features before testing, this can be done running the script `save_features.py` before calling `test.py`. For instance, if you trained a `protonet`, you should call:
+**Test classification.** For testing `gpnet`, `maml` and `maml_approx` it is enough to repeat the train command replacing the call to `train.py` with the call to `test.py` as follows:
 
 ```
-python3 save_features.py --dataset="miniImagenet" --method="protonet" --train_n_way=5 --test_n_way=5 --n_shot=1 --seed=1 --train_aug
-python3 test.py --dataset="miniImagenet" --method="protonet" --train_n_way=5 --test_n_way=5 --n_shot=1 --seed=1 --repeat=5 --train_aug
+python test.py --dataset="miniImagenet" --method="gpnet" --train_n_way=5 --test_n_way=5 --n_shot=1 --seed=1 --train_aug
 ```
 
-We noticed that the [original code](https://github.com/wyharveychen/CloserLookFewShot) has a large variance on test tasks. To reduce this variance we add the parameter `repeat=N`. It iterates N times with different seeds and take an average over the N tests, we used `N=5` in our experiments.
+Other methods require to store the features (for efficiency) before testing, this can be done running the script `save_features.py` before calling `test.py`. For instance, if you trained a `protonet`, you should call:
+
+```
+python save_features.py --dataset="miniImagenet" --method="protonet" --train_n_way=5 --test_n_way=5 --n_shot=1 --seed=1 --train_aug
+python test.py --dataset="miniImagenet" --method="protonet" --train_n_way=5 --test_n_way=5 --n_shot=1 --seed=1 --repeat=5 --train_aug
+```
+
+We noticed that the [original code](https://github.com/wyharveychen/CloserLookFewShot) has a large variance on test tasks. To reduce this variance we add the parameter `repeat=N`. It iterates N times with different seeds and take an average over the N tests, we used `N=5` (3000 tasks) in our experiments.
 
 
 Cross-domain classification
@@ -79,7 +84,7 @@ Cross-domain classification
 For the cross-domain classification experiments the procedure is the same described previously. The only difference is that the available datasets are: `cross_char`, and `cross`. The former being `omniglot -> EMNIST`, and the latter `miniImagenet -> CUB`. Here an example of training procedure:
 
 ```
-python3 train.py --dataset="cross_char" --method="gpnet" --train_n_way=5 --test_n_way=5 --n_shot=1 --seed=1
+python train.py --dataset="cross_char" --method="gpnet" --train_n_way=5 --test_n_way=5 --n_shot=1 --seed=1
 ```
 
 Note that the parameter `--train_aug` (data augmentation) is not used for `cross_char` but only for `cross`.
