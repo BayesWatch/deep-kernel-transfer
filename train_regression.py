@@ -8,12 +8,14 @@ from methods.gpnet_regression import GPNet
 from methods.feature_transfer_regression import FeatureTransfer
 import backbone
 import os
+import numpy as np
 
-torch.manual_seed(1)
+params = parse_args_regression('train_regression')
+np.random.seed(params.seed)
+torch.manual_seed(params.seed)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-params = parse_args_regression('train_regression')
 params.checkpoint_dir = '%scheckpoints/%s/' % (configs.save_dir, params.dataset)
 if not os.path.isdir(params.checkpoint_dir):
     os.makedirs(params.checkpoint_dir)

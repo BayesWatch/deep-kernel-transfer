@@ -13,21 +13,21 @@ from time import gmtime, strftime
 import random
 from statistics import mean
 from data.qmul_loader import get_batch, train_people, test_people
+from configs import kernel_type
 
 class GPNet(nn.Module):
-    def __init__(self, backbone, covar_module=None):
+    def __init__(self, backbone):
         super(GPNet, self).__init__()
         ## GP parameters
         self.feature_extractor = backbone
-        self.get_model_likelihood_mll(covar_module) #Init model, likelihood, and mll
+        self.get_model_likelihood_mll() #Init model, likelihood, and mll
 
-    def get_model_likelihood_mll(self, train_x=None, train_y=None, covar_module=None):
+    def get_model_likelihood_mll(self, train_x=None, train_y=None):
         if(train_x is None): train_x=torch.ones(19, 2916).cuda()
         if(train_y is None): train_y=torch.ones(19).cuda()
-        if(covar_module is None): covar_module=gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
 
         likelihood = gpytorch.likelihoods.GaussianLikelihood()
-        model = ExactGPLayer(train_x=train_x, train_y=train_y, likelihood=likelihood, covar_module=covar_module)
+        model = ExactGPLayer(train_x=train_x, train_y=train_y, likelihood=likelihood, kernel=kernel_type)
 
         self.model      = model.cuda()
         self.likelihood = likelihood.cuda()
@@ -58,9 +58,8 @@ class GPNet(nn.Module):
             mse = self.mse(predictions.mean, labels)
 
             if (epoch%10==0):
-                print('[%d] - Loss: %.3f  MSE: %.3f  lengthscale: %.3f   noise: %.3f' % (
+                print('[%d] - Loss: %.3f  MSE: %.3f noise: %.3f' % (
                     epoch, loss.item(), mse.item(),
-                    self.model.covar_module.base_kernel.lengthscale.item(),
                     self.model.likelihood.noise.item()
                 ))
 
@@ -111,10 +110,27 @@ class GPNet(nn.Module):
         self.feature_extractor.load_state_dict(ckpt['net'])
 
 class ExactGPLayer(gpytorch.models.ExactGP):
-    def __init__(self, train_x, train_y, likelihood, covar_module):
+    def __init__(self, train_x, train_y, likelihood, kernel='linear'):
         super(ExactGPLayer, self).__init__(train_x, train_y, likelihood)
         self.mean_module  = gpytorch.means.ConstantMean()
-        self.covar_module = covar_module
+
+         ## Linear kernel
+        if(kernel=='linear'):
+            self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.LinearKernel())
+        ## RBF kernel
+        elif(kernel=='rbf' or kernel=='RBF'):
+            self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+        ## Matern kernel
+        elif(kernel=='matern'):
+            self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.MaternKernel())
+        ## Polynomial (p=1)
+        elif(kernel=='poli1'):
+            self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.PolynomialKernel(power=1))
+        ## Polynomial (p=2)
+        elif(kernel=='poli2'):
+            self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.PolynomialKernel(power=2))
+        else:
+            raise ValueError("[ERROR] the kernel '" + str(kernel) + "' is not supported!")
 
     def forward(self, x):
         mean_x  = self.mean_module(x)

@@ -48,6 +48,7 @@ def parse_args(script):
 
 def parse_args_regression(script):
         parser = argparse.ArgumentParser(description= 'few-shot script %s' %(script))
+        parser.add_argument('--seed' , default=0, type=int,  help='Seed for Numpy and pyTorch. Default: 0 (None)')
         parser.add_argument('--model'       , default='Conv3',   help='model: Conv{3} / MLP{2}')
         parser.add_argument('--method'      , default='gpnet',   help='gpnet / transfer')
         parser.add_argument('--dataset'     , default='QMUL',    help='QMUL / sines')

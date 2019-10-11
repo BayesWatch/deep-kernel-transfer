@@ -9,11 +9,11 @@ from methods.feature_transfer_regression import FeatureTransfer
 import backbone
 import numpy as np
 
-torch.manual_seed(1)
+params = parse_args_regression('test_regression')
+np.random.seed(params.seed)
+torch.manual_seed(params.seed)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
-
-params = parse_args_regression('test_regression')
 
 params.checkpoint_dir = '%scheckpoints/%s/%s_%s' % (configs.save_dir, params.dataset, params.model, params.method)
 bb           = backbone.Conv3().cuda()
