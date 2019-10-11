@@ -3,9 +3,11 @@ Official implementation of the paper *"Deep Kernel Transfer in Gaussian Processe
 Requirements
 -------------
 
--Python >= 3.0
--[pyTorch](https://pytorch.org/) >= 1.2.0
--[gpyTorch](https://gpytorch.ai/) > 0.3.5
+1. Python >= 3.0
+2. Numpy >= 1.17
+3. [pyTorch](https://pytorch.org/) >= 1.2.0
+4. [gpyTorch](https://gpytorch.ai/) >= 0.3.5
+5. (optional) [TensorboardX](https://pypi.org/project/tensorboardX/) 
 
 
 
