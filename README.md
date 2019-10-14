@@ -62,7 +62,18 @@ Replace `DATASET_NAME` with one of the following: `omniglot`, `CUB`, `miniImagen
 Regression
 -----------
 
-TODO
+**QMUL Head Pose Trajectory Regression** The methods that can be used for regression are `gpnet` and `transfer` (feature transfer). In order to train these methods, use:
+
+```
+python train_regression.py --method="gpnet" --seed=1
+```
+The number of training epochs can be set with `--stop_epoch`. If you wish to change the kernel, please edit the entry in `configs.py`, which defaults to `Linear`. The above command will  save a checkpoint to `save/checkpoints/QMUL/Conv3_gpnet`, which you can test on the test set with:
+
+```
+python test_regression.py --method="gpnet" --seed=1
+```
+
+You can additionally specify the size of the support set with `--n_support` (which defaults to 5), and the number of test epochs with `--n_test_epochs` (which defaults to 10). 
 
 
 Classification
