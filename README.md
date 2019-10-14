@@ -15,8 +15,13 @@ Cite this paper if you use the method or code in this repository as part of a pu
 ```
 @article{patacchiola2019deep,
   title={Deep Kernel Transfer in Gaussian Processes for Few-shot Learning},
+<<<<<<< HEAD
   author={Patacchiola, Massimiliano and Turner, Jack and Crowley, Elliot and Storkey, Amos},
   journal={arXiv preprint arXiv:1910.05199},
+=======
+  author={Patacchiola, Massimiliano and Turner, Jack and Crowley, Elliot J. and Storkey, Amos},
+  journal={arXiv preprint arXiv:},
+>>>>>>> 285c80a43bcd817ce5bcf36e90c9c889bc285f4c
   year={2019}
 }
 ```
