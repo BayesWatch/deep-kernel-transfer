@@ -62,7 +62,7 @@ Replace `DATASET_NAME` with one of the following: `omniglot`, `CUB`, `miniImagen
 Regression
 -----------
 
-** QMUL Head Pose Trajectory Regression ** The methods that can be used for regression are `gpnet` and `transfer` (feature transfer). In order to train these methods, use:
+**QMUL Head Pose Trajectory Regression** The methods that can be used for regression are `gpnet` and `transfer` (feature transfer). In order to train these methods, use:
 
 ```
 python train_regression.py --method="gpnet" --seed=1
