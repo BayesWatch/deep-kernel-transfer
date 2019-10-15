@@ -120,6 +120,9 @@ class ExactGPLayer(gpytorch.models.ExactGP):
         ## RBF kernel
         elif(kernel=='rbf' or kernel=='RBF'):
             self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+        ## Spectral kernel
+        elif(kernel=='spectral'):
+            self.covar_module = gpytorch.kernels.SpectralMixtureKernel(num_mixtures=4, ard_num_dims=2916)
         ## Matern kernel
         elif(kernel=='matern'):
             self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.MaternKernel())
