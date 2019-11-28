@@ -153,11 +153,9 @@ class GPNet(MetaTemplate):
             loss = -self.mll(output, self.model.train_targets)
             loss.backward()
             optimizer.step() #TODO change back to optimizer_gp
-            avg_loss = avg_loss+loss.item()
             
             self.iteration = i+(epoch*len(train_loader))
-            if(self.writer is not None): self.writer.add_scalar('GP_loss', avg_loss/float(N+1e-10), self.iteration)
-            if(self.writer is not None): self.writer.add_scalar('CNN_loss', loss, self.iteration)
+            if(self.writer is not None): self.writer.add_scalar('loss', loss, self.iteration)
 
             #Eval on the query (validation set)
             with torch.no_grad():
@@ -185,7 +183,7 @@ class GPNet(MetaTemplate):
                                         
             if i % print_freq==0:
                 if(self.writer is not None): self.writer.add_histogram('z_support', z_support, self.iteration)
-                print('Epoch [{:d}] [{:d}/{:d}] | Outscale {:f} | Lenghtscale {:f} | Noise {:f} | Loss {:f} | Loss-gp {:f} | Supp. {:f} | Query {:f}'.format(epoch, i, len(train_loader), outputscale, lenghtscale, noise, loss.item(), avg_loss/float(N+1e-10), accuracy_support, accuracy_query))
+                print('Epoch [{:d}] [{:d}/{:d}] | Outscale {:f} | Lenghtscale {:f} | Noise {:f} | Loss {:f} | Supp. {:f} | Query {:f}'.format(epoch, i, len(train_loader), outputscale, lenghtscale, noise, loss.item(), accuracy_support, accuracy_query))
     
     def correct(self, x, N=0, laplace=False):            
         ##Dividing input x in query and support set
