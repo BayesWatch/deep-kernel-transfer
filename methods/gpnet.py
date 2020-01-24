@@ -6,7 +6,6 @@ from torch.autograd import Variable
 import numpy as np
 import torch.nn.functional as F
 from methods.meta_template import MetaTemplate
-from methods.densenet import DenseNet
 
 ## Our packages
 import gpytorch
