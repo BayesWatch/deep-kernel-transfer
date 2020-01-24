@@ -31,6 +31,13 @@ Requirements
 5. (optional) [TensorboardX](https://pypi.org/project/tensorboardX/) 
 
 
+Installation
+-------------
+
+```
+pip install numpy torch torchvision gpytorch h5py
+```
+
 GPNet: code of our method
 --------------------------
 
