@@ -40,6 +40,8 @@ class GPNet(MetaTemplate):
         self.writer=None
         self.feature_extractor = self.feature
         self.get_model_likelihood_mll() #Init model, likelihood, and mll
+        if(kernel_type=="cossim"): self.normalize=True
+        else: self.normalize=False
                 
     def init_summary(self):        
         if(IS_TBX_INSTALLED):
@@ -131,6 +133,8 @@ class GPNet(MetaTemplate):
             self.likelihood.train()
             self.feature_extractor.train() #TODO change to eval                           
             z_train = self.feature_extractor.forward(x_train)#.detach() #[340, 64] #TODO enable detach()
+            if(self.normalize): z_train = F.normalize(z_train, p=2, dim=1)
+            
             train_list = [z_train]*self.n_way
             lenghtscale = 0.0
             noise = 0.0
@@ -162,6 +166,7 @@ class GPNet(MetaTemplate):
                 self.likelihood.eval()
                 self.feature_extractor.eval()
                 z_support = self.feature_extractor.forward(x_support).detach()
+                if(self.normalize): z_support = F.normalize(z_support, p=2, dim=1)
                 z_support_list = [z_support]*len(y_support)
                 predictions = self.likelihood(*self.model(*z_support_list)) #return 20 MultiGaussian Distributions
                 predictions_list = list()
@@ -171,6 +176,7 @@ class GPNet(MetaTemplate):
                 accuracy_support = (np.sum(y_pred==y_support) / float(len(y_support))) * 100.0
                 if(self.writer is not None): self.writer.add_scalar('GP_support_accuracy', accuracy_support, self.iteration)
                 z_query = self.feature_extractor.forward(x_query).detach()
+                if(self.normalize): z_query = F.normalize(z_query, p=2, dim=1)
                 z_query_list = [z_query]*len(y_query)
                 predictions = self.likelihood(*self.model(*z_query_list)) #return 20 MultiGaussian Distributions
                 predictions_list = list()
@@ -199,8 +205,10 @@ class GPNet(MetaTemplate):
             kernel = 1.0 * RBF(length_scale=0.1 , length_scale_bounds=(0.1, 10.0))
             gp = GaussianProcessClassifier(kernel=kernel, optimizer=None)
             z_support = self.feature_extractor.forward(x_support).detach()
+            if(self.normalize): z_support = F.normalize(z_support, p=2, dim=1)
             gp.fit(z_support.cpu().detach().numpy(), y_support.cpu().detach().numpy())
-            z_query = self.feature_extractor.forward(x_query).detach()           
+            z_query = self.feature_extractor.forward(x_query).detach() 
+            if(self.normalize): z_query = F.normalize(z_query, p=2, dim=1)
             y_pred = gp.predict(z_query.cpu().detach().numpy())
             accuracy = (np.sum(y_pred==y_query) / float(len(y_query))) * 100.0
             top1_correct = np.sum(y_pred==y_query)
@@ -220,6 +228,7 @@ class GPNet(MetaTemplate):
             target_list.append(target.cuda())
 
         z_train = self.feature_extractor.forward(x_train).detach() #[340, 64]
+        if(self.normalize): z_train = F.normalize(z_train, p=2, dim=1)
         train_list = [z_train]*self.n_way
         for idx, single_model in enumerate(self.model.models):
             single_model.set_train_data(inputs=z_train, targets=target_list[idx], strict=False)
@@ -245,6 +254,7 @@ class GPNet(MetaTemplate):
             self.likelihood.eval()
             self.feature_extractor.eval()
             z_query = self.feature_extractor.forward(x_query).detach()
+            if(self.normalize): z_query = F.normalize(z_query, p=2, dim=1)
             z_query_list = [z_query]*len(y_query)
             predictions = self.likelihood(*self.model(*z_query_list)) #return n_way MultiGaussians
             predictions_list = list()
@@ -309,6 +319,11 @@ class ExactGPLayer(gpytorch.models.ExactGP):
         ## Polynomial (p=2) 
         elif(kernel=='poli2'):       
             self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.PolynomialKernel(power=2))
+        elif(kernel=='cossim'):
+            self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.LinearKernel())
+            self.covar_module.base_kernel.variance = 1.0
+            self.covar_module.base_kernel.raw_variance.requires_grad = False
+            
         else:
             raise ValueError("[ERROR] the kernel '" + str(kernel) + "' is not supported!")
 
