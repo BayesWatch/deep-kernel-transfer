@@ -105,7 +105,7 @@ class GPNet(MetaTemplate):
                 single_model.covar_module.outputscale=self.outputscale_list[idx].clone().detach()
                 
     def train_loop(self, epoch, train_loader, optimizer, print_freq=10):
-        optimizer = torch.optim.Adam([{'params': self.model.parameters(), 'lr': 1e-4}, #TODO change back to lr: 1e-5
+        optimizer = torch.optim.Adam([{'params': self.model.parameters(), 'lr': 1e-4},
                                       {'params': self.feature.parameters(), 'lr': 1e-3}])
         
         for i, (x,_) in enumerate(train_loader):
@@ -131,8 +131,8 @@ class GPNet(MetaTemplate):
 
             self.model.train()
             self.likelihood.train()
-            self.feature_extractor.train() #TODO change to eval                           
-            z_train = self.feature_extractor.forward(x_train)#.detach() #[340, 64] #TODO enable detach()
+            self.feature_extractor.train()                   
+            z_train = self.feature_extractor.forward(x_train)
             if(self.normalize): z_train = F.normalize(z_train, p=2, dim=1)
             
             train_list = [z_train]*self.n_way
@@ -151,11 +151,11 @@ class GPNet(MetaTemplate):
             if(single_model.covar_module.outputscale is not None): outputscale /= float(len(self.model.models))
 
             ## Optimize
-            optimizer.zero_grad() #TODO change back to optimizer_gp
+            optimizer.zero_grad()
             output = self.model(*self.model.train_inputs)
             loss = -self.mll(output, self.model.train_targets)
             loss.backward()
-            optimizer.step() #TODO change back to optimizer_gp
+            optimizer.step()
             
             self.iteration = i+(epoch*len(train_loader))
             if(self.writer is not None): self.writer.add_scalar('loss', loss, self.iteration)
@@ -280,7 +280,6 @@ class GPNet(MetaTemplate):
             if(i % 100==0):
                 acc_mean = np.mean(np.asarray(acc_all))
                 print('Test | Batch {:d}/{:d} | Loss {:f} | Acc {:f}'.format(i, len(test_loader), loss_value, acc_mean))
-            #if(i>=20): break #TODO remove
         acc_all  = np.asarray(acc_all)
         acc_mean = np.mean(acc_all)
         acc_std  = np.std(acc_all)
@@ -322,8 +321,7 @@ class ExactGPLayer(gpytorch.models.ExactGP):
         elif(kernel=='cossim'):
             self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.LinearKernel())
             self.covar_module.base_kernel.variance = 1.0
-            self.covar_module.base_kernel.raw_variance.requires_grad = False
-            
+            self.covar_module.base_kernel.raw_variance.requires_grad = False            
         else:
             raise ValueError("[ERROR] the kernel '" + str(kernel) + "' is not supported!")
 
