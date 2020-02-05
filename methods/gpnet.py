@@ -40,8 +40,15 @@ class GPNet(MetaTemplate):
         self.writer=None
         self.feature_extractor = self.feature
         self.get_model_likelihood_mll() #Init model, likelihood, and mll
-        if(kernel_type=="cossim"): self.normalize=True
-        else: self.normalize=False
+        if(kernel_type=="cossim"): 
+            self.normalize=True
+        elif(kernel_type=="bncossim"):
+            self.normalize=True
+            latent_size = np.prod(self.feature_extractor.final_feat_dim)
+            self.feature_extractor.trunk.add_module("bn_out", nn.BatchNorm1d(latent_size))            
+        else: 
+            self.normalize=False
+        print(self.feature_extractor)
                 
     def init_summary(self):        
         if(IS_TBX_INSTALLED):
@@ -318,7 +325,8 @@ class ExactGPLayer(gpytorch.models.ExactGP):
         ## Polynomial (p=2) 
         elif(kernel=='poli2'):       
             self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.PolynomialKernel(power=2))
-        elif(kernel=='cossim'):
+        elif(kernel=='cossim' or kernel=='bncossim'):
+        ## Cosine distance and BatchNorm Cosine distance
             self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.LinearKernel())
             self.covar_module.base_kernel.variance = 1.0
             self.covar_module.base_kernel.raw_variance.requires_grad = False            
