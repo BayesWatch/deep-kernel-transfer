@@ -48,7 +48,6 @@ class GPNet(MetaTemplate):
             self.feature_extractor.trunk.add_module("bn_out", nn.BatchNorm1d(latent_size))            
         else: 
             self.normalize=False
-        print(self.feature_extractor)
                 
     def init_summary(self):        
         if(IS_TBX_INSTALLED):
@@ -113,7 +112,7 @@ class GPNet(MetaTemplate):
                 
     def train_loop(self, epoch, train_loader, optimizer, print_freq=10):
         optimizer = torch.optim.Adam([{'params': self.model.parameters(), 'lr': 1e-4},
-                                      {'params': self.feature.parameters(), 'lr': 1e-3}])
+                                      {'params': self.feature_extractor.parameters(), 'lr': 1e-3}])
         
         for i, (x,_) in enumerate(train_loader):
             self.n_query = x.size(1) - self.n_support           
