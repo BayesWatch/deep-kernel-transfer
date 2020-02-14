@@ -133,7 +133,7 @@ class ExactGPLayer(gpytorch.models.ExactGP):
         elif(kernel=='poli2'):
             self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.PolynomialKernel(power=2))
         else:
-            raise ValueError("[ERROR] the kernel '" + str(kernel) + "' is not supported!")
+            raise ValueError("[ERROR] the kernel '" + str(kernel) + "' is not supported for regression!")
 
     def forward(self, x):
         mean_x  = self.mean_module(x)
