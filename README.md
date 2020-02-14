@@ -58,19 +58,19 @@ sh download_DATASET_NAME.sh
 
 Replace `DATASET_NAME` with one of the following: `omniglot`, `CUB`, `miniImagenet`, `emnist`, `QMUL`. Notice that mini-ImageNet is a large dataset that requires substantial storage, therefore you can save the dataset in another location and then change the entry in `configs.py` in accordance.
 
-**Methods.** There are a few available methods that you can use: `gpshot`, `maml`, `maml_approx`, `protonet`, `relationnet`, `matchingnet`, `baseline`, `baseline++`. You must use those exact strings at training and test time when you call the script (see below). Note that our method is `gpshot`, and that `baseline` corresponds to feature transfer in our paper. By default GPShot has a linear kernel, to change this please edit the entry in `configs.py`.
+**Methods.** There are a few available methods that you can use: `gpshot`, `maml`, `maml_approx`, `protonet`, `relationnet`, `matchingnet`, `baseline`, `baseline++`. You must use those exact strings at training and test time when you call the script (see below). Note that our method is `gpshot`, and that `baseline` corresponds to feature transfer in our paper. By default GPShot has a `BNCosSim` kernel, to change this please edit the entry in `configs.py`.
 
 **Backbone.** The script allows training and testing on different backbone networks. By default the script will use the same backbone used in our experiments (`Conv4`). Check the file `backbone.py` for the available architectures, and use the parameter `--model=BACKBONE_STRING` where `BACKBONE_STRING` is one of the following: `Conv4`, `Conv6`, `ResNet10|18|34|50|101`.
 
 Regression
 -----------
 
-**QMUL Head Pose Trajectory Regression** The methods that can be used for regression are `gpshot` and `transfer` (feature transfer). In order to train these methods, use:
+**QMUL Head Pose Trajectory Regression.** In order to run this experiment you first have to download and setup the QMUL dataset, this can be done automatically running the file `download_QMUL.sh` from the folder `filelists/QMUL`. The methods that can be used for regression are `gpshot` and `transfer` (feature transfer). In order to train these methods, use:
 
 ```
 python train_regression.py --method="gpshot" --seed=1
 ```
-The number of training epochs can be set with `--stop_epoch`. If you wish to change the kernel, please edit the entry in `configs.py`, which defaults to `Linear`. The above command will  save a checkpoint to `save/checkpoints/QMUL/Conv3_gpshot`, which you can test on the test set with:
+The number of training epochs can be set with `--stop_epoch`. If you wish to change the kernel, please edit the entry in `configs.py`, which defaults to `BNCosSim`. The above command will  save a checkpoint to `save/checkpoints/QMUL/Conv3_gpshot`, which you can test on the test set with:
 
 ```
 python test_regression.py --method="gpshot" --seed=1
