@@ -23,14 +23,16 @@ Requirements
 3. [pyTorch](https://pytorch.org/) >= 1.2.0
 4. [GPyTorch](https://gpytorch.ai/) >= 0.3.5
 5. (optional) [TensorboardX](https://pypi.org/project/tensorboardX/) 
-
+ 
 
 Installation
 -------------
 
 ```
-pip install numpy torch torchvision gpytorch h5py
+pip install numpy torch torchvision gpytorch h5py pillow
 ```
+
+We confirm that the following configuration worked for us: numpy 1.18.1, torch 1.4.0, torchvision 0.5.0, gpytorch 1.0.1, h5py 5.10.0, pillow 7.0.0
 
 GPShot: code of our method
 --------------------------
