@@ -114,26 +114,14 @@ class ExactGPLayer(gpytorch.models.ExactGP):
         super(ExactGPLayer, self).__init__(train_x, train_y, likelihood)
         self.mean_module  = gpytorch.means.ConstantMean()
 
-         ## Linear kernel
-        if(kernel=='linear'):
-            self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.LinearKernel())
         ## RBF kernel
-        elif(kernel=='rbf' or kernel=='RBF'):
+        if(kernel=='rbf' or kernel=='RBF'):
             self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
         ## Spectral kernel
         elif(kernel=='spectral'):
             self.covar_module = gpytorch.kernels.SpectralMixtureKernel(num_mixtures=4, ard_num_dims=2916)
-        ## Matern kernel
-        elif(kernel=='matern'):
-            self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.MaternKernel())
-        ## Polynomial (p=1)
-        elif(kernel=='poli1'):
-            self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.PolynomialKernel(power=1))
-        ## Polynomial (p=2)
-        elif(kernel=='poli2'):
-            self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.PolynomialKernel(power=2))
         else:
-            raise ValueError("[ERROR] the kernel '" + str(kernel) + "' is not supported for regression!")
+            raise ValueError("[ERROR] the kernel '" + str(kernel) + "' is not supported for regression, use 'rbf' or 'spectral'.")
 
     def forward(self, x):
         mean_x  = self.mean_module(x)

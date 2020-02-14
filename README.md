@@ -65,12 +65,13 @@ Replace `DATASET_NAME` with one of the following: `omniglot`, `CUB`, `miniImagen
 Regression
 -----------
 
-**QMUL Head Pose Trajectory Regression.** In order to run this experiment you first have to download and setup the QMUL dataset, this can be done automatically running the file `download_QMUL.sh` from the folder `filelists/QMUL`. The methods that can be used for regression are `gpshot` and `transfer` (feature transfer). In order to train these methods, use:
+**QMUL Head Pose Trajectory Regression.** In order to run this experiment you first have to download and setup the QMUL dataset, this can be done automatically running the file `download_QMUL.sh` from the folder `filelists/QMUL`. Moreover, you have to change the kernel type, editing the entry in `configs.py` (default `BNCosSim`) to `rbf` or `spectral`. Please note that other kernels are not supported for this experiment and their use will raise an error. The methods that can be used for regression are `gpshot` and `transfer` (feature transfer). In order to train these methods, use:
 
 ```
 python train_regression.py --method="gpshot" --seed=1
 ```
-The number of training epochs can be set with `--stop_epoch`. If you wish to change the kernel, please edit the entry in `configs.py`, which defaults to `BNCosSim`. The above command will  save a checkpoint to `save/checkpoints/QMUL/Conv3_gpshot`, which you can test on the test set with:
+
+The number of training epochs can be set with `--stop_epoch`. The above command will  save a checkpoint to `save/checkpoints/QMUL/Conv3_gpshot`, which you can test on the test set with:
 
 ```
 python test_regression.py --method="gpshot" --seed=1
