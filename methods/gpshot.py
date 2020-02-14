@@ -23,15 +23,15 @@ except ImportError:
 ## Training CMD
 #ATTENTION: to test each method use exaclty the same command but replace 'train.py' with 'test.py'
 # Omniglot->EMNIST without data augmentation
-#python3 train.py --dataset="cross_char" --method="gpnet" --train_n_way=5 --test_n_way=5 --n_shot=1
-#python3 train.py --dataset="cross_char" --method="gpnet" --train_n_way=5 --test_n_way=5 --n_shot=5
+#python3 train.py --dataset="cross_char" --method="gpshot" --train_n_way=5 --test_n_way=5 --n_shot=1
+#python3 train.py --dataset="cross_char" --method="gpshot" --train_n_way=5 --test_n_way=5 --n_shot=5
 # CUB + data augmentation
-#python3 train.py --dataset="CUB" --method="gpnet" --train_n_way=5 --test_n_way=5 --n_shot=1 --train_aug
-#python3 train.py --dataset="CUB" --method="gpnet" --train_n_way=5 --test_n_way=5 --n_shot=5 --train_aug
+#python3 train.py --dataset="CUB" --method="gpshot" --train_n_way=5 --test_n_way=5 --n_shot=1 --train_aug
+#python3 train.py --dataset="CUB" --method="gpshot" --train_n_way=5 --test_n_way=5 --n_shot=5 --train_aug
 
-class GPNet(MetaTemplate):
+class GPShot(MetaTemplate):
     def __init__(self, model_func, n_way, n_support):
-        super(GPNet, self).__init__(model_func, n_way, n_support)
+        super(GPShot, self).__init__(model_func, n_way, n_support)
         ## GP parameters
         self.leghtscale_list = None
         self.noise_list = None
@@ -93,7 +93,7 @@ class GPNet(MetaTemplate):
         for idx, param in enumerate(self.gp_layer.variational_parameters()):
             if(idx==0): param.data.copy_(mean_init) #"variational_mean"
             elif(idx==1): param.data.copy_(covar_init) #"chol_variational_covar"
-            else: raise ValueError('[ERROR] GPNet the variational_parameters at index>1 should not exist!')
+            else: raise ValueError('[ERROR] GPShot the variational_parameters at index>1 should not exist!')
 
     def _reset_parameters(self):
         if(self.leghtscale_list is None):

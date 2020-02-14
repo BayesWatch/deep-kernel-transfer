@@ -15,9 +15,9 @@ from statistics import mean
 from data.qmul_loader import get_batch, train_people, test_people
 from configs import kernel_type
 
-class GPNet(nn.Module):
+class GPShot(nn.Module):
     def __init__(self, backbone):
-        super(GPNet, self).__init__()
+        super(GPShot, self).__init__()
         ## GP parameters
         self.feature_extractor = backbone
         self.get_model_likelihood_mll() #Init model, likelihood, and mll
