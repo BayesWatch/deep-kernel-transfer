@@ -5,7 +5,7 @@ This repository contains the official pytorch implementation of the paper:
 
 *"Deep Kernel Transfer in Gaussian Processes for Few-shot Learning" (2019) Patacchiola, Turner, Crowley, and Storkey* [[download paper]](https://arxiv.org/abs/1910.05199)
 
-**Overview.** We introduce a Bayesian method based on [Gaussian Processes (GPs)](https://en.wikipedia.org/wiki/Gaussian_process) that can learn efficiently from a limited amount of data and generalize across new tasks and domains. We frame few-shot learning as a model selection problem by learning a *deep kernel* across tasks, and then using this kernel as a covariance function in a GP prior for Bayesian inference. This probabilistic treatment allows for cross-domain flexibility, and uncertainty quantification. We provide substantial experimental evidence, showing that the proposed method is better than several state-of-the-art algorithms in few-shot regression and cross-domain classification.
+**Overview.** We introduce a Bayesian method based on [Gaussian Processes (GPs)](https://en.wikipedia.org/wiki/Gaussian_process) to tackle the problem of few-shot learning. We propose a simple, yet effective variant of deep kernel learning in which the kernel is transferred across tasks, which we call *deep kernel transfer*. This approach is straightforward to implement, provides uncertainty quantification, and does not require estimation of task-specific parameters. We empirically demonstrate that the proposed method outperforms several state-of-the-art algorithms in few-shot regression, classification, and cross-domain adaptation
 
 Cite this paper if you use the method or code in this repository as part of a published research project:
 
