@@ -294,6 +294,45 @@ class GPShot(MetaTemplate):
         if(return_std): return acc_mean, acc_std
         else: return acc_mean               
 
+    def get_logits(self, x):
+        self.n_query = x.size(1) - self.n_support
+        ##Dividing input x in query and support set
+        x_support = x[:,:self.n_support,:,:,:].contiguous().view(self.n_way * (self.n_support), *x.size()[2:]).cuda()
+        y_support = torch.from_numpy(np.repeat(range(self.n_way), self.n_support)).cuda()
+        x_query = x[:,self.n_support:,:,:,:].contiguous().view(self.n_way * (self.n_query), *x.size()[2:]).cuda()
+        y_query = np.repeat(range(self.n_way), self.n_query)
+
+        # Init to dummy values
+        x_train = x_support
+        y_train = y_support            
+        target_list = list()
+        samples_per_model = int(len(y_train) / self.n_way)
+        for way in range(self.n_way):
+            target = torch.ones(len(y_train), dtype=torch.float32) * -1.0
+            start_index = way * samples_per_model
+            stop_index = start_index+samples_per_model
+            target[start_index:stop_index] = 1.0
+            target_list.append(target.cuda())
+        z_train = self.feature_extractor.forward(x_train).detach() #[340, 64]
+        if(self.normalize): z_train = F.normalize(z_train, p=2, dim=1)
+        train_list = [z_train]*self.n_way
+        for idx, single_model in enumerate(self.model.models):
+            single_model.set_train_data(inputs=z_train, targets=target_list[idx], strict=False)
+
+
+        with torch.no_grad(), gpytorch.settings.num_likelihood_samples(32):
+            self.model.eval()
+            self.likelihood.eval()
+            self.feature_extractor.eval()
+            z_query = self.feature_extractor.forward(x_query).detach()
+            if(self.normalize): z_query = F.normalize(z_query, p=2, dim=1)
+            z_query_list = [z_query]*len(y_query)
+            predictions = self.likelihood(*self.model(*z_query_list)) #return n_way MultiGaussians
+            predictions_list = list()
+            for gaussian in predictions:
+                predictions_list.append(gaussian.mean) #.cpu().detach().numpy())
+            y_pred = torch.stack(predictions_list, 1)
+        return y_pred
 
 class ExactGPLayer(gpytorch.models.ExactGP):
     '''

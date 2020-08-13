@@ -118,3 +118,8 @@ class MAML(MetaTemplate):
         else:
             return acc_mean
 
+    def get_logits(self, x):
+        self.n_query = x.size(1) - self.n_support
+        logits = self.set_forward(x)
+        return logits
+
