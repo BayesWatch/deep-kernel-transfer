@@ -14,7 +14,7 @@ import backbone
 from data.datamgr import SimpleDataManager, SetDataManager
 from methods.baselinetrain import BaselineTrain
 from methods.baselinefinetune import BaselineFinetune
-from methods.gpshot import GPShot
+from methods.DKT import DKT
 from methods.protonet import ProtoNet
 from methods.matchingnet import MatchingNet
 from methods.relationnet import RelationNet
@@ -29,8 +29,8 @@ def _set_seed(seed, verbose=True):
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
         torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False 
-        if(verbose): print("[INFO] Setting SEED: " + str(seed))   
+        torch.backends.cudnn.benchmark = False
+        if(verbose): print("[INFO] Setting SEED: " + str(seed))
     else:
         if(verbose): print("[INFO] Setting SEED: None")
 
@@ -59,7 +59,7 @@ def train(base_loader, val_loader, model, optimization, start_epoch, stop_epoch,
             max_acc = acc
             outfile = os.path.join(params.checkpoint_dir, 'best_model.tar')
             torch.save({'epoch': epoch, 'state': model.state_dict()}, outfile)
-                
+
         if (epoch % params.save_freq == 0) or (epoch == stop_epoch - 1):
             outfile = os.path.join(params.checkpoint_dir, '{:d}.tar'.format(epoch))
             torch.save({'epoch': epoch, 'state': model.state_dict()}, outfile)
@@ -69,7 +69,7 @@ def train(base_loader, val_loader, model, optimization, start_epoch, stop_epoch,
 
 if __name__ == '__main__':
     params = parse_args('train')
-    _set_seed(parse_args('train').seed)    
+    _set_seed(parse_args('train').seed)
     if params.dataset == 'cross':
         base_file = configs.data_dir['miniImagenet'] + 'all.json'
         val_file = configs.data_dir['CUB'] + 'val.json'
@@ -127,8 +127,8 @@ if __name__ == '__main__':
             model = BaselineTrain(model_dict[params.model], params.num_classes)
         elif params.method == 'baseline++':
             model = BaselineTrain(model_dict[params.model], params.num_classes, loss_type='dist')
-            
-    elif params.method in ['gpshot', 'protonet', 'matchingnet', 'relationnet', 'relationnet_softmax', 'maml', 'maml_approx']:
+
+    elif params.method in ['DKT', 'protonet', 'matchingnet', 'relationnet', 'relationnet_softmax', 'maml', 'maml_approx']:
         n_query = max(1, int(
             16 * params.test_n_way / params.train_n_way))  # if test_n_way is smaller than train_n_way, reduce n_query to keep batch size small
 
@@ -141,9 +141,9 @@ if __name__ == '__main__':
         val_loader = val_datamgr.get_data_loader(val_file, aug=False)
         # a batch for SetDataManager: a [n_way, n_support + n_query, dim, w, h] tensor
 
-        if(params.method == 'gpshot'):
-            model = GPShot(model_dict[params.model], **train_few_shot_params)
-            model.init_summary()          
+        if(params.method == 'DKT'):
+            model = DKT(model_dict[params.model], **train_few_shot_params)
+            model.init_summary()
         elif params.method == 'protonet':
             model = ProtoNet(model_dict[params.model], **train_few_shot_params)
         elif params.method == 'matchingnet':

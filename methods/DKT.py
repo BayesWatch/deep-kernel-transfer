@@ -13,7 +13,7 @@ from time import gmtime, strftime
 import random
 from configs import kernel_type
 #Check if tensorboardx is installed
-try:  
+try:
     from tensorboardX import SummaryWriter
     IS_TBX_INSTALLED = True
 except ImportError:
@@ -23,15 +23,15 @@ except ImportError:
 ## Training CMD
 #ATTENTION: to test each method use exaclty the same command but replace 'train.py' with 'test.py'
 # Omniglot->EMNIST without data augmentation
-#python3 train.py --dataset="cross_char" --method="gpshot" --train_n_way=5 --test_n_way=5 --n_shot=1
-#python3 train.py --dataset="cross_char" --method="gpshot" --train_n_way=5 --test_n_way=5 --n_shot=5
+#python3 train.py --dataset="cross_char" --method="DKT" --train_n_way=5 --test_n_way=5 --n_shot=1
+#python3 train.py --dataset="cross_char" --method="DKT" --train_n_way=5 --test_n_way=5 --n_shot=5
 # CUB + data augmentation
-#python3 train.py --dataset="CUB" --method="gpshot" --train_n_way=5 --test_n_way=5 --n_shot=1 --train_aug
-#python3 train.py --dataset="CUB" --method="gpshot" --train_n_way=5 --test_n_way=5 --n_shot=5 --train_aug
+#python3 train.py --dataset="CUB" --method="DKT" --train_n_way=5 --test_n_way=5 --n_shot=1 --train_aug
+#python3 train.py --dataset="CUB" --method="DKT" --train_n_way=5 --test_n_way=5 --n_shot=5 --train_aug
 
-class GPShot(MetaTemplate):
+class DKT(MetaTemplate):
     def __init__(self, model_func, n_way, n_support):
-        super(GPShot, self).__init__(model_func, n_way, n_support)
+        super(DKT, self).__init__(model_func, n_way, n_support)
         ## GP parameters
         self.leghtscale_list = None
         self.noise_list = None
@@ -40,20 +40,20 @@ class GPShot(MetaTemplate):
         self.writer=None
         self.feature_extractor = self.feature
         self.get_model_likelihood_mll() #Init model, likelihood, and mll
-        if(kernel_type=="cossim"): 
+        if(kernel_type=="cossim"):
             self.normalize=True
         elif(kernel_type=="bncossim"):
             self.normalize=True
             latent_size = np.prod(self.feature_extractor.final_feat_dim)
-            self.feature_extractor.trunk.add_module("bn_out", nn.BatchNorm1d(latent_size))            
-        else: 
+            self.feature_extractor.trunk.add_module("bn_out", nn.BatchNorm1d(latent_size))
+        else:
             self.normalize=False
-                
-    def init_summary(self):        
+
+    def init_summary(self):
         if(IS_TBX_INSTALLED):
             time_string = strftime("%d%m%Y_%H%M%S", gmtime())
             writer_path = "./log/" + time_string
-            self.writer = SummaryWriter(log_dir=writer_path)            
+            self.writer = SummaryWriter(log_dir=writer_path)
 
     def get_model_likelihood_mll(self, train_x_list=None, train_y_list=None):
         if(train_x_list is None): train_x_list=[torch.ones(100, 64).cuda()]*self.n_way
@@ -61,20 +61,20 @@ class GPShot(MetaTemplate):
         model_list = list()
         likelihood_list = list()
         for train_x, train_y in zip(train_x_list, train_y_list):
-            likelihood = gpytorch.likelihoods.GaussianLikelihood()   
-            model = ExactGPLayer(train_x=train_x, train_y=train_y, likelihood=likelihood, kernel=kernel_type)                
+            likelihood = gpytorch.likelihoods.GaussianLikelihood()
+            model = ExactGPLayer(train_x=train_x, train_y=train_y, likelihood=likelihood, kernel=kernel_type)
             model_list.append(model)
-            likelihood_list.append(model.likelihood)       
+            likelihood_list.append(model.likelihood)
         self.model = gpytorch.models.IndependentModelList(*model_list).cuda()
         self.likelihood = gpytorch.likelihoods.LikelihoodList(*likelihood_list).cuda()
         self.mll = gpytorch.mlls.SumMarginalLogLikelihood(self.likelihood, self.model).cuda()
         return self.model, self.likelihood, self.mll
-                        
+
     def set_forward(self, x, is_feature=False):
         pass
 
     def set_forward_loss(self, x):
-        pass   
+        pass
 
     def _reset_likelihood(self, debug=False):
         for param in self.likelihood.parameters():
@@ -93,7 +93,7 @@ class GPShot(MetaTemplate):
         for idx, param in enumerate(self.gp_layer.variational_parameters()):
             if(idx==0): param.data.copy_(mean_init) #"variational_mean"
             elif(idx==1): param.data.copy_(covar_init) #"chol_variational_covar"
-            else: raise ValueError('[ERROR] GPShot the variational_parameters at index>1 should not exist!')
+            else: raise ValueError('[ERROR] DKT the variational_parameters at index>1 should not exist!')
 
     def _reset_parameters(self):
         if(self.leghtscale_list is None):
@@ -104,18 +104,18 @@ class GPShot(MetaTemplate):
                 self.leghtscale_list.append(single_model.covar_module.base_kernel.lengthscale.clone().detach())
                 self.noise_list.append(single_model.likelihood.noise.clone().detach())
                 self.outputscale_list.append(single_model.covar_module.outputscale.clone().detach())
-        else:  
+        else:
             for idx, single_model in enumerate(self.model.models):
                 single_model.covar_module.base_kernel.lengthscale=self.leghtscale_list[idx].clone().detach()#.requires_grad_(True)
                 single_model.likelihood.noise=self.noise_list[idx].clone().detach()
                 single_model.covar_module.outputscale=self.outputscale_list[idx].clone().detach()
-                
+
     def train_loop(self, epoch, train_loader, optimizer, print_freq=10):
         optimizer = torch.optim.Adam([{'params': self.model.parameters(), 'lr': 1e-4},
                                       {'params': self.feature_extractor.parameters(), 'lr': 1e-3}])
-        
+
         for i, (x,_) in enumerate(train_loader):
-            self.n_query = x.size(1) - self.n_support           
+            self.n_query = x.size(1) - self.n_support
             if self.change_way: self.n_way  = x.size(0)
             x_all = x.contiguous().view(self.n_way * (self.n_support + self.n_query), *x.size()[2:]).cuda()
             y_all = Variable(torch.from_numpy(np.repeat(range(self.n_way), self.n_query+self.n_support)).cuda())
@@ -125,7 +125,7 @@ class GPShot(MetaTemplate):
             y_query = np.repeat(range(self.n_way), self.n_query)
             x_train = x_all
             y_train = y_all
-            
+
             target_list = list()
             samples_per_model = int(len(y_train) / self.n_way) #25 / 5 = 5
             for way in range(self.n_way):
@@ -133,14 +133,14 @@ class GPShot(MetaTemplate):
                 start_index = way * samples_per_model
                 stop_index = start_index+samples_per_model
                 target[start_index:stop_index] = 1.0
-                target_list.append(target.cuda())                
+                target_list.append(target.cuda())
 
             self.model.train()
             self.likelihood.train()
-            self.feature_extractor.train()                   
+            self.feature_extractor.train()
             z_train = self.feature_extractor.forward(x_train)
             if(self.normalize): z_train = F.normalize(z_train, p=2, dim=1)
-            
+
             train_list = [z_train]*self.n_way
             lenghtscale = 0.0
             noise = 0.0
@@ -162,7 +162,7 @@ class GPShot(MetaTemplate):
             loss = -self.mll(output, self.model.train_targets)
             loss.backward()
             optimizer.step()
-            
+
             self.iteration = i+(epoch*len(train_loader))
             if(self.writer is not None): self.writer.add_scalar('loss', loss, self.iteration)
 
@@ -177,7 +177,7 @@ class GPShot(MetaTemplate):
                 predictions = self.likelihood(*self.model(*z_support_list)) #return 20 MultiGaussian Distributions
                 predictions_list = list()
                 for gaussian in predictions:
-                    predictions_list.append(torch.sigmoid(gaussian.mean).cpu().detach().numpy())      
+                    predictions_list.append(torch.sigmoid(gaussian.mean).cpu().detach().numpy())
                 y_pred = np.vstack(predictions_list).argmax(axis=0) #[model, classes]
                 accuracy_support = (np.sum(y_pred==y_support) / float(len(y_support))) * 100.0
                 if(self.writer is not None): self.writer.add_scalar('GP_support_accuracy', accuracy_support, self.iteration)
@@ -187,22 +187,22 @@ class GPShot(MetaTemplate):
                 predictions = self.likelihood(*self.model(*z_query_list)) #return 20 MultiGaussian Distributions
                 predictions_list = list()
                 for gaussian in predictions:
-                    predictions_list.append(torch.sigmoid(gaussian.mean).cpu().detach().numpy())      
+                    predictions_list.append(torch.sigmoid(gaussian.mean).cpu().detach().numpy())
                 y_pred = np.vstack(predictions_list).argmax(axis=0) #[model, classes]
                 accuracy_query = (np.sum(y_pred==y_query) / float(len(y_query))) * 100.0
                 if(self.writer is not None): self.writer.add_scalar('GP_query_accuracy', accuracy_query, self.iteration)
-                                        
+
             if i % print_freq==0:
                 if(self.writer is not None): self.writer.add_histogram('z_support', z_support, self.iteration)
                 print('Epoch [{:d}] [{:d}/{:d}] | Outscale {:f} | Lenghtscale {:f} | Noise {:f} | Loss {:f} | Supp. {:f} | Query {:f}'.format(epoch, i, len(train_loader), outputscale, lenghtscale, noise, loss.item(), accuracy_support, accuracy_query))
-    
-    def correct(self, x, N=0, laplace=False):            
+
+    def correct(self, x, N=0, laplace=False):
         ##Dividing input x in query and support set
         x_support = x[:,:self.n_support,:,:,:].contiguous().view(self.n_way * (self.n_support), *x.size()[2:]).cuda()
         y_support = torch.from_numpy(np.repeat(range(self.n_way), self.n_support)).cuda()
         x_query = x[:,self.n_support:,:,:,:].contiguous().view(self.n_way * (self.n_query), *x.size()[2:]).cuda()
         y_query = np.repeat(range(self.n_way), self.n_query)
-            
+
         ## Laplace approximation of the posterior
         if(laplace):
             from sklearn.gaussian_process import GaussianProcessClassifier
@@ -213,17 +213,17 @@ class GPShot(MetaTemplate):
             z_support = self.feature_extractor.forward(x_support).detach()
             if(self.normalize): z_support = F.normalize(z_support, p=2, dim=1)
             gp.fit(z_support.cpu().detach().numpy(), y_support.cpu().detach().numpy())
-            z_query = self.feature_extractor.forward(x_query).detach() 
+            z_query = self.feature_extractor.forward(x_query).detach()
             if(self.normalize): z_query = F.normalize(z_query, p=2, dim=1)
             y_pred = gp.predict(z_query.cpu().detach().numpy())
             accuracy = (np.sum(y_pred==y_query) / float(len(y_query))) * 100.0
             top1_correct = np.sum(y_pred==y_query)
             count_this = len(y_query)
             return float(top1_correct), count_this, 0.0
-    
+
         x_train = x_support
         y_train = y_support
-            
+
         target_list = list()
         samples_per_model = int(len(y_train) / self.n_way)
         for way in range(self.n_way):
@@ -238,17 +238,17 @@ class GPShot(MetaTemplate):
         train_list = [z_train]*self.n_way
         for idx, single_model in enumerate(self.model.models):
             single_model.set_train_data(inputs=z_train, targets=target_list[idx], strict=False)
-                            
+
         optimizer = torch.optim.Adam([{'params': self.model.parameters()}], lr=1e-3)
 
         self.model.train()
         self.likelihood.train()
         self.feature_extractor.eval()
-        
+
         avg_loss=0.0
         for i in range(0, N):
             ## Optimize
-            optimizer.zero_grad()            
+            optimizer.zero_grad()
             output = self.model(*self.model.train_inputs)
             loss = -self.mll(output, self.model.train_targets)
             loss.backward()
@@ -265,18 +265,18 @@ class GPShot(MetaTemplate):
             predictions = self.likelihood(*self.model(*z_query_list)) #return n_way MultiGaussians
             predictions_list = list()
             for gaussian in predictions:
-                predictions_list.append(torch.sigmoid(gaussian.mean).cpu().detach().numpy())      
+                predictions_list.append(torch.sigmoid(gaussian.mean).cpu().detach().numpy())
             y_pred = np.vstack(predictions_list).argmax(axis=0) #[model, classes]
             top1_correct = np.sum(y_pred == y_query)
-            count_this = len(y_query)        
+            count_this = len(y_query)
         return float(top1_correct), count_this, avg_loss/float(N+1e-10)
 
     def test_loop(self, test_loader, record=None, return_std=False):
         print_freq = 10
         correct =0
         count = 0
-        acc_all = []        
-        iter_num = len(test_loader) 
+        acc_all = []
+        iter_num = len(test_loader)
         for i, (x,_) in enumerate(test_loader):
             self.n_query = x.size(1) - self.n_support
             if self.change_way:
@@ -292,7 +292,7 @@ class GPShot(MetaTemplate):
         print('%d Test Acc = %4.2f%% +- %4.2f%%' %(iter_num,  acc_mean, 1.96* acc_std/np.sqrt(iter_num)))
         if(self.writer is not None): self.writer.add_scalar('test_accuracy', acc_mean, self.iteration)
         if(return_std): return acc_mean, acc_std
-        else: return acc_mean               
+        else: return acc_mean
 
     def get_logits(self, x):
         self.n_query = x.size(1) - self.n_support
@@ -304,7 +304,7 @@ class GPShot(MetaTemplate):
 
         # Init to dummy values
         x_train = x_support
-        y_train = y_support            
+        y_train = y_support
         target_list = list()
         samples_per_model = int(len(y_train) / self.n_way)
         for way in range(self.n_way):
@@ -347,7 +347,7 @@ class ExactGPLayer(gpytorch.models.ExactGP):
         likelihood.noise_covar.noise = torch.tensor(0.1)
         super().__init__(train_x, train_y, likelihood)
         self.mean_module = gpytorch.means.ConstantMean()
-        
+
         ## Linear kernel
         if(kernel=='linear'):
             self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.LinearKernel())
@@ -360,19 +360,19 @@ class ExactGPLayer(gpytorch.models.ExactGP):
         ## Polynomial (p=1)
         elif(kernel=='poli1'):
             self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.PolynomialKernel(power=1))
-        ## Polynomial (p=2) 
-        elif(kernel=='poli2'):       
+        ## Polynomial (p=2)
+        elif(kernel=='poli2'):
             self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.PolynomialKernel(power=2))
         elif(kernel=='cossim' or kernel=='bncossim'):
         ## Cosine distance and BatchNorm Cosine distance
             self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.LinearKernel())
             self.covar_module.base_kernel.variance = 1.0
-            self.covar_module.base_kernel.raw_variance.requires_grad = False            
+            self.covar_module.base_kernel.raw_variance.requires_grad = False
         else:
             raise ValueError("[ERROR] the kernel '" + str(kernel) + "' is not supported!")
 
-        
+
     def forward(self, x):
         mean_x = self.mean_module(x)
         covar_x = self.covar_module(x)
-        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x) 
+        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)

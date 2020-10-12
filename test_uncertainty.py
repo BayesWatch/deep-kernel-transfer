@@ -17,7 +17,7 @@ from data.datamgr import SetDataManager
 from methods.baselinetrain import BaselineTrain
 from methods.baselinefinetune import BaselineFinetune
 from methods.protonet import ProtoNet
-from methods.gpshot import GPShot
+from methods.DKT import DKT
 from methods.matchingnet import MatchingNet
 from methods.relationnet import RelationNet
 from methods.maml import MAML
@@ -108,8 +108,8 @@ def get_logits_targets(params):
         model           = BaselineFinetune( model_dict[params.model], loss_type = 'dist', **few_shot_params )
     elif params.method == 'protonet':
         model           = ProtoNet( model_dict[params.model], **few_shot_params )
-    elif params.method == 'gpshot':
-        model           = GPShot(model_dict[params.model], **few_shot_params)
+    elif params.method == 'DKT':
+        model           = DKT(model_dict[params.model], **few_shot_params)
     elif params.method == 'matchingnet':
         model           = MatchingNet( model_dict[params.model], **few_shot_params )
     elif params.method in ['relationnet', 'relationnet_softmax']:
@@ -162,7 +162,7 @@ def get_logits_targets(params):
         split_str = split + "_" +str(params.save_iter)
     else:
         split_str = split
-    if params.method in ['maml', 'maml_approx', 'gpshot']: #maml do not support testing with feature
+    if params.method in ['maml', 'maml_approx', 'DKT']: #maml do not support testing with feature
         if 'Conv' in params.model:
             if params.dataset in ['omniglot', 'cross_char']:
                 image_size = 28
@@ -251,7 +251,7 @@ def main():
         if(seed!=0): _set_seed(i)
         else: _set_seed(0)
         logits, targets = get_logits_targets(parse_args('test'))
-        #ece = ece_module.forward(logits, targets, temperature, onevsrest=params.method=='gpshot').item()
+        #ece = ece_module.forward(logits, targets, temperature, onevsrest=params.method=='DKT').item()
         ece = ece_module.forward(logits, targets, temperature, onevsrest=False).item()
         ece_list.append(ece)
         print("ECE:", np.mean(ece_list), "+-", np.std(ece_list))
