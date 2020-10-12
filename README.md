@@ -1,22 +1,18 @@
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/deep-kernel-transfer-in-gaussian-processes/few-shot-image-classification-on-cub-200-5-1)](https://paperswithcode.com/sota/few-shot-image-classification-on-cub-200-5-1?p=deep-kernel-transfer-in-gaussian-processes)
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/deep-kernel-transfer-in-gaussian-processes/few-shot-image-classification-on-cub-200-5)](https://paperswithcode.com/sota/few-shot-image-classification-on-cub-200-5?p=deep-kernel-transfer-in-gaussian-processes)
-
 This repository contains the official pytorch implementation of the paper: 
 
-*"Deep Kernel Transfer in Gaussian Processes for Few-shot Learning" (2019) Patacchiola, Turner, Crowley, and Storkey* [[download paper]](https://arxiv.org/abs/1910.05199)
-
-**Overview.** We introduce a Bayesian method based on [Gaussian Processes (GPs)](https://en.wikipedia.org/wiki/Gaussian_process) to tackle the problem of few-shot learning. We propose a simple, yet effective variant of deep kernel learning in which the kernel is transferred across tasks, which we call *deep kernel transfer*. This approach is straightforward to implement, provides uncertainty quantification, and does not require estimation of task-specific parameters. We empirically demonstrate that the proposed method outperforms several state-of-the-art algorithms in few-shot regression, classification, and cross-domain adaptation
-
-Cite this paper if you use the method or code in this repository as part of a published research project:
+*"Bayesian Meta-Learning for the Few-Shot Setting via Deep Kernels"* (2020) Patacchiola, Turner, Crowley, and Storkey, to appear in *Advances of Neural Information Processing (NeurIPS, Spotlight)* [[download paper]](https://arxiv.org/abs/1910.05199)
 
 ```
 @article{patacchiola2019deep,
-  title={Deep Kernel Transfer in Gaussian Processes for Few-shot Learning},
+  title={Bayesian Meta-Learning for the Few-Shot Setting via Deep Kernels},
   author={Patacchiola, Massimiliano and Turner, Jack and Crowley, Elliot J. and Storkey, Amos},
   journal={arXiv preprint arXiv:1910.05199},
   year={2019}
 }
 ```
+
+**Overview.** We introduce a Bayesian method based on [Gaussian Processes (GPs)](https://en.wikipedia.org/wiki/Gaussian_process) to tackle the problem of few-shot learning. We propose a simple, yet effective variant of deep kernel learning in which the kernel is transferred across tasks, which we call *Deep Kernel Transfer (DKT)*. This approach is straightforward to implement, provides uncertainty quantification, and does not require estimation of task-specific parameters. We empirically demonstrate that the proposed method outperforms several state-of-the-art algorithms in few-shot regression, classification, and cross-domain adaptation.
+
 
 Requirements
 -------------
