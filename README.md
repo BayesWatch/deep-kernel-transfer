@@ -1,19 +1,19 @@
-This repository contains the official pytorch implementation of the paper: 
+Official pytorch implementation of the paper: 
 
-*"Bayesian Meta-Learning for the Few-Shot Setting via Deep Kernels"* (2020) Patacchiola, Turner, Crowley, and Storkey, to appear in *Advances of Neural Information Processing (NeurIPS, Spotlight)* [[download paper]](https://arxiv.org/abs/1910.05199)
+*"Bayesian Meta-Learning for the Few-Shot Setting via Deep Kernels"* (2020) Patacchiola, M., Turner, J., Crowley, E. J., O'Boyle, M., & Storkey, A., *Advances in Neural Information Processing (NeurIPS, Spotlight)* [[arXiv]](https://arxiv.org/abs/1910.05199)
 
 ```
-@article{patacchiola2019deep,
+@inproceedings{patacchiola2020bayesian,
   title={Bayesian Meta-Learning for the Few-Shot Setting via Deep Kernels},
   author={Patacchiola, Massimiliano and Turner, Jack and Crowley, Elliot J. and Storkey, Amos},
-  journal={arXiv preprint arXiv:1910.05199},
-  year={2019}
+  booktitle={Advances in Neural Information Processing Systems},
+  year={2020}
 }
 ```
 
-**Overview.** We introduce a Bayesian meta-learning method based on [Gaussian Processes (GPs)](https://en.wikipedia.org/wiki/Gaussian_process) to tackle the problem of few-shot learning. We propose a simple, yet effective variant of deep kernel learning in which the kernel is transferred across tasks, which we call *Deep Kernel Transfer (DKT)*. This approach is straightforward to implement, provides uncertainty quantification, and does not require estimation of task-specific parameters. We empirically demonstrate that the proposed method outperforms several state-of-the-art algorithms in few-shot regression, classification, and cross-domain adaptation.
+**Overview.** We introduce a Bayesian meta-learning method based on [Gaussian Processes (GPs)](https://en.wikipedia.org/wiki/Gaussian_process) to tackle the problem of few-shot learning. We propose a simple, yet effective variant of deep kernel learning in which the kernel is transferred across tasks, which we call *Deep Kernel Transfer (DKT)*. This approach is straightforward to implement, provides uncertainty quantification, and does not require estimation of task-specific parameters. We empirically demonstrate that DKT outperforms several state-of-the-art algorithms in few-shot regression, classification, and cross-domain adaptation.
 
-**NOTE**: previous pre-print versions of this paper have used the names "GPNet" and "GPShot". In the published version we are using the name "DKT".
+**NOTE**: previous pre-prints of this paper have used the names "GPNet" and "GPShot". In the published version we are using the name "DKT".
 
 Requirements
 -------------
