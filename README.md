@@ -2,7 +2,7 @@ Official pytorch implementation of the paper:
 
 *"Bayesian Meta-Learning for the Few-Shot Setting via Deep Kernels"* (2020) Patacchiola, M., Turner, J., Crowley, E. J., O'Boyle, M., & Storkey, A., *Advances in Neural Information Processing (NeurIPS, Spotlight)* [[arXiv]](https://arxiv.org/abs/1910.05199)
 
-```
+```bibtex
 @inproceedings{patacchiola2020bayesian,
   title={Bayesian Meta-Learning for the Few-Shot Setting via Deep Kernels},
   author={Patacchiola, Massimiliano and Turner, Jack and Crowley, Elliot J. and Storkey, Amos},
