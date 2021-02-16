@@ -7,6 +7,8 @@ import torch.optim as optim
 import backbone
 from torch.autograd import Variable
 from data.qmul_loader import get_batch, train_people, test_people
+from data_generator import SinusoidalDataGenerator
+
 
 class Regressor(nn.Module):
     def __init__(self):
@@ -33,9 +35,14 @@ class FeatureTransfer(nn.Module):
         self.model = Regressor()
         self.criterion = nn.MSELoss()
 
-    def train_loop(self, epoch, optimizer):
-        batch, batch_labels = get_batch(train_people)
-        batch, batch_labels = batch.cuda(), batch_labels.cuda()
+    def train_loop(self, epoch, optimizer, params):
+        if params.dataset != "sine":
+            batch, batch_labels = get_batch(train_people)
+            batch, batch_labels = batch.cuda(), batch_labels.cuda()
+        else:
+            batch, batch_labels, amp, phase = SinusoidalDataGenerator(params.update_batch_size * 2,
+                                                                      params.meta_batch_size).generate()
+            batch, batch_labels = batch.cuda(), batch_labels.cuda()
 
         for inputs, labels in zip(batch, batch_labels):
             optimizer.zero_grad()
