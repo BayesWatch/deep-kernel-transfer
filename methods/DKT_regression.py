@@ -45,8 +45,8 @@ class DKT(nn.Module):
         pass
 
     def train_loop(self, epoch, optimizer):
-        print("NUM KERNEL PARAMS {}".format(sum([p.numel() for p in self.model.parameters() if p.requires_grad])))
-        print("NUM TRANSFORM PARAMS {}".format(sum([p.numel() for p in self.feature_extractor.parameters() if p.requires_grad])))
+        #print("NUM KERNEL PARAMS {}".format(sum([p.numel() for p in self.model.parameters() if p.requires_grad])))
+        #print("NUM TRANSFORM PARAMS {}".format(sum([p.numel() for p in self.feature_extractor.parameters() if p.requires_grad])))
         batch, batch_labels = get_batch(train_people)
         batch, batch_labels = batch.cuda(), batch_labels.cuda()
         for inputs, labels in zip(batch, batch_labels):
