@@ -34,6 +34,6 @@ optimizer = torch.optim.Adam([{'params': model.model.parameters(), 'lr': 0.001},
                               {'params': model.feature_extractor.parameters(), 'lr': 0.001}])
 
 for epoch in range(params.stop_epoch):
-    model.train_loop(epoch, optimizer)
+    model.train_loop(epoch, optimizer, params)
 
 model.save_checkpoint(params.checkpoint_dir)
