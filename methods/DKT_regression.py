@@ -15,6 +15,8 @@ from statistics import mean
 from data.qmul_loader import get_batch, train_people, test_people
 from configs import kernel_type
 
+from kernels import NNKernel
+
 class DKT(nn.Module):
     def __init__(self, backbone):
         super(DKT, self).__init__()
@@ -25,7 +27,7 @@ class DKT(nn.Module):
     def get_model_likelihood_mll(self, train_x=None, train_y=None):
         if(train_x is None): train_x=torch.ones(19, 2916).cuda()
         if(train_y is None): train_y=torch.ones(19).cuda()
-
+            
         likelihood = gpytorch.likelihoods.GaussianLikelihood()
         model = ExactGPLayer(train_x=train_x, train_y=train_y, likelihood=likelihood, kernel=kernel_type)
 
@@ -43,6 +45,8 @@ class DKT(nn.Module):
         pass
 
     def train_loop(self, epoch, optimizer):
+        print("NUM KERNEL PARAMS {}".format(sum([p.numel() for p in self.model.parameters() if p.requires_grad])))
+        print("NUM TRANSFORM PARAMS {}".format(sum([p.numel() for p in self.feature_extractor.parameters() if p.requires_grad])))
         batch, batch_labels = get_batch(train_people)
         batch, batch_labels = batch.cuda(), batch_labels.cuda()
         for inputs, labels in zip(batch, batch_labels):
@@ -101,6 +105,7 @@ class DKT(nn.Module):
         gp_state_dict         = self.model.state_dict()
         likelihood_state_dict = self.likelihood.state_dict()
         nn_state_dict         = self.feature_extractor.state_dict()
+        
         torch.save({'gp': gp_state_dict, 'likelihood': likelihood_state_dict, 'net':nn_state_dict}, checkpoint)
 
     def load_checkpoint(self, checkpoint):
@@ -120,6 +125,9 @@ class ExactGPLayer(gpytorch.models.ExactGP):
         ## Spectral kernel
         elif(kernel=='spectral'):
             self.covar_module = gpytorch.kernels.SpectralMixtureKernel(num_mixtures=4, ard_num_dims=2916)
+        elif(kernel ==  "nn"):
+            kernel = NNKernel(input_dim = 2916, output_dim = 16, num_layers=1, hidden_dim=16)
+            self.covar_module = kernel
         else:
             raise ValueError("[ERROR] the kernel '" + str(kernel) + "' is not supported for regression, use 'rbf' or 'spectral'.")
 
