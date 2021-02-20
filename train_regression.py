@@ -1,14 +1,14 @@
+import logging
+import os
+
+import numpy as np
 import torch
-import torch.nn as nn
-import torch.optim as optim
+
+import backbone
 import configs
-from data.qmul_loader import get_batch, train_people, test_people
-from io_utils import parse_args_regression, get_resume_file
+from io_utils import parse_args_regression
 from methods.DKT_regression import DKT
 from methods.feature_transfer_regression import FeatureTransfer
-import backbone
-import os
-import numpy as np
 
 params = parse_args_regression('train_regression')
 np.random.seed(params.seed)
@@ -21,12 +21,16 @@ if not os.path.isdir(params.checkpoint_dir):
     os.makedirs(params.checkpoint_dir)
 params.checkpoint_dir = '%scheckpoints/%s/%s_%s' % (configs.save_dir, params.dataset, params.model, params.method)
 
-bb           = backbone.Conv3().cuda()
+# Cuda
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+logging.info('Device: {}'.format(device))
 
-if params.method=='DKT':
-    model = DKT(bb).cuda()
-elif params.method=='transfer':
-    model = FeatureTransfer(bb).cuda()
+bb = backbone.Conv3().to(device)
+
+if params.method == 'DKT':
+    model = DKT(bb, device)
+elif params.method == 'transfer':
+    model = FeatureTransfer(bb, device)
 else:
     ValueError('Unrecognised method')
 

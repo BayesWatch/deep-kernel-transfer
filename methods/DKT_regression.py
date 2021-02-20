@@ -11,22 +11,23 @@ from data_generator import SinusoidalDataGenerator
 
 
 class DKT(nn.Module):
-    def __init__(self, backbone):
+    def __init__(self, backbone, device):
         super(DKT, self).__init__()
         ## GP parameters
         self.feature_extractor = backbone
+        self.device = device
         self.get_model_likelihood_mll()  # Init model, likelihood, and mll
 
     def get_model_likelihood_mll(self, train_x=None, train_y=None):
-        if (train_x is None): train_x = torch.ones(19, 2916).cuda()
-        if (train_y is None): train_y = torch.ones(19).cuda()
+        if (train_x is None): train_x = torch.ones(19, 2916).to(self.device)
+        if (train_y is None): train_y = torch.ones(19).to(self.device)
 
         likelihood = gpytorch.likelihoods.GaussianLikelihood()
         model = ExactGPLayer(train_x=train_x, train_y=train_y, likelihood=likelihood, kernel=kernel_type)
 
-        self.model = model.cuda()
-        self.likelihood = likelihood.cuda()
-        self.mll = gpytorch.mlls.ExactMarginalLogLikelihood(self.likelihood, self.model).cuda()
+        self.model = model.to(self.device)
+        self.likelihood = likelihood.to(self.device)
+        self.mll = gpytorch.mlls.ExactMarginalLogLikelihood(self.likelihood, self.model).to(self.device)
         self.mse = nn.MSELoss()
 
         return self.model, self.likelihood, self.mll
@@ -40,11 +41,10 @@ class DKT(nn.Module):
     def train_loop(self, epoch, optimizer, params):
         if params.dataset != "sine":
             batch, batch_labels = get_batch(train_people)
-            batch, batch_labels = batch.cuda(), batch_labels.cuda()
         else:
             batch, batch_labels, amp, phase = SinusoidalDataGenerator(params.update_batch_size * 2,
                                                                       params.meta_batch_size).generate()
-            batch, batch_labels = batch.cuda(), batch_labels.cuda()
+        batch, batch_labels = batch.to(self.device), batch_labels.to(self.device)
 
         for inputs, labels in zip(batch, batch_labels):
             optimizer.zero_grad()
@@ -70,13 +70,13 @@ class DKT(nn.Module):
         support_ind = list(np.random.choice(list(range(19)), replace=False, size=n_support))
         query_ind = [i for i in range(19) if i not in support_ind]
 
-        x_all = inputs.cuda()
-        y_all = targets.cuda()
+        x_all = inputs.to(self.device)
+        y_all = targets.to(self.device)
 
-        x_support = inputs[:, support_ind, :, :, :].cuda()
-        y_support = targets[:, support_ind].cuda()
+        x_support = inputs[:, support_ind, :, :, :].to(self.device)
+        y_support = targets[:, support_ind].to(self.device)
         x_query = inputs[:, query_ind, :, :, :]
-        y_query = targets[:, query_ind].cuda()
+        y_query = targets[:, query_ind].to(self.device)
 
         # choose a random test person
         n = np.random.randint(0, len(test_people) - 1)
