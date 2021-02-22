@@ -5,7 +5,7 @@ import gpytorch
 
 
 class NNKernel(gpytorch.kernels.Kernel):
-    def __init__(self, input_dim, output_dim, num_layers, hidden_dim, **kwargs):
+    def __init__(self, input_dim, output_dim, num_layers, hidden_dim, flatten=False, **kwargs):
         super(NNKernel, self).__init__(**kwargs)
     
       
@@ -13,13 +13,17 @@ class NNKernel(gpytorch.kernels.Kernel):
         self.output_dim = output_dim
         self.num_layers = num_layers
         self.hidden_dim = hidden_dim
+        self.flatten = flatten
         self.model = self.create_model()
     
     
     
     def create_model(self):
+
         assert self.num_layers>=1, "Number of hidden layers must be at least 1"
         modules = [nn.Linear(self.input_dim, self.hidden_dim), nn.ReLU()]
+        if self.flatten:
+            modules = [nn.Flatten()]+modules
         for i in range(self.num_layers-1):
             modules.append(nn.Linear(self.hidden_dim, self.hidden_dim))
             modules.append(nn.ReLU())

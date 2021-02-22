@@ -12,6 +12,8 @@ import gpytorch
 from time import gmtime, strftime
 import random
 from configs import kernel_type
+
+from kernels import NNKernel
 #Check if tensorboardx is installed
 try:
     from tensorboardX import SummaryWriter
@@ -19,6 +21,8 @@ try:
 except ImportError:
     IS_TBX_INSTALLED = False
     print('[WARNING] install tensorboardX to record simulation logs.')
+
+
 
 ## Training CMD
 #ATTENTION: to test each method use exaclty the same command but replace 'train.py' with 'test.py'
@@ -368,6 +372,9 @@ class ExactGPLayer(gpytorch.models.ExactGP):
             self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.LinearKernel())
             self.covar_module.base_kernel.variance = 1.0
             self.covar_module.base_kernel.raw_variance.requires_grad = False
+        elif(kernel=="nn"):
+            kernel = NNKernel(input_dim=1600, output_dim=16, num_layers=1, hidden_dim=16)
+            self.covar_module = gpytorch.kernels.ScaleKernel(kernel) 
         else:
             raise ValueError("[ERROR] the kernel '" + str(kernel) + "' is not supported!")
 
