@@ -1,12 +1,10 @@
 import numpy as np
-import gpytorch
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-import backbone
-from torch.autograd import Variable
+
 from data.qmul_loader import get_batch, train_people, test_people
+from data_generator import SinusoidalDataGenerator
+
 
 class Regressor(nn.Module):
     def __init__(self):
@@ -25,17 +23,23 @@ class Regressor(nn.Module):
         out = self.layer4(x)
         return out
 
+
 class FeatureTransfer(nn.Module):
-    def __init__(self, backbone):
+    def __init__(self, backbone, device):
         super(FeatureTransfer, self).__init__()
         regressor = Regressor()
         self.feature_extractor = backbone
         self.model = Regressor()
         self.criterion = nn.MSELoss()
+        self.device = device
 
-    def train_loop(self, epoch, optimizer):
-        batch, batch_labels = get_batch(train_people)
-        batch, batch_labels = batch.cuda(), batch_labels.cuda()
+    def train_loop(self, epoch, optimizer, params):
+        if params.dataset != "sine":
+            batch, batch_labels = get_batch(train_people)
+        else:
+            batch, batch_labels, amp, phase = SinusoidalDataGenerator(params.update_batch_size * 2,
+                                                                      params.meta_batch_size).generate()
+        batch, batch_labels = batch.to(self.device), batch_labels.to(self.device)
 
         for inputs, labels in zip(batch, batch_labels):
             optimizer.zero_grad()
@@ -44,27 +48,27 @@ class FeatureTransfer(nn.Module):
             loss.backward()
             optimizer.step()
 
-            if(epoch%10==0):
+            if (epoch % 10 == 0):
                 print('[%d] - Loss: %.3f' % (
                     epoch, loss.item()
                 ))
 
-    def test_loop(self, n_support, optimizer): # we need optimizer to take one gradient step
+    def test_loop(self, n_support, optimizer):  # we need optimizer to take one gradient step
         inputs, targets = get_batch(test_people)
 
         support_ind = list(np.random.choice(list(range(19)), replace=False, size=n_support))
-        query_ind   = [i for i in range(19) if i not in support_ind]
+        query_ind = [i for i in range(19) if i not in support_ind]
 
-        x_all = inputs.cuda()
-        y_all = targets.cuda()
+        x_all = inputs.to(self.device)
+        y_all = targets.to(self.device)
 
-        x_support = inputs[:,support_ind,:,:,:].cuda()
-        y_support = targets[:,support_ind].cuda()
-        x_query   = inputs[:,query_ind,:,:,:].cuda()
-        y_query   = targets[:,query_ind].cuda()
+        x_support = inputs[:, support_ind, :, :, :].to(self.device)
+        y_support = targets[:, support_ind].to(self.device)
+        x_query = inputs[:, query_ind, :, :, :].to(self.device)
+        y_query = targets[:, query_ind].to(self.device)
 
         # choose a random test person
-        n = np.random.randint(0, len(test_people)-1)
+        n = np.random.randint(0, len(test_people) - 1)
 
         optimizer.zero_grad()
         z_support = self.feature_extractor(x_support[n]).detach()
@@ -80,7 +84,8 @@ class FeatureTransfer(nn.Module):
         return self.criterion(output_all, y_all[n])
 
     def save_checkpoint(self, checkpoint):
-        torch.save({'feature_extractor': self.feature_extractor.state_dict(), 'model':self.model.state_dict()}, checkpoint)
+        torch.save({'feature_extractor': self.feature_extractor.state_dict(), 'model': self.model.state_dict()},
+                   checkpoint)
 
     def load_checkpoint(self, checkpoint):
         ckpt = torch.load(checkpoint)
