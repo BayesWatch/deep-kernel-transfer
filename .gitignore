@@ -3,6 +3,16 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+
+#slurm
+slurm-*.out
+
+#scripts
+*.sh
+
+#datasets
+filelists/
+
 # C extensions
 *.so
 
