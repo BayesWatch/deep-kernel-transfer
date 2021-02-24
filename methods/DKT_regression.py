@@ -10,23 +10,29 @@ from data.qmul_loader import get_batch, train_people, test_people
 from data_generator import SinusoidalDataGenerator
 
 
-from kernels import NNKernel
+from kernels import NNKernel, MultiNNKernel
 
 class DKT(nn.Module):
-    def __init__(self, backbone, device):
+    def __init__(self, backbone, device, num_tasks=1):
         super(DKT, self).__init__()
         ## GP parameters
         self.feature_extractor = backbone
         self.device = device
-        self.get_model_likelihood_mll()  # Init model, likelihood, and mll
+        self.num_tasks=num_tasks
+        self.get_model_likelihood_mll()# Init model, likelihood, and mll
 
+     
     def get_model_likelihood_mll(self, train_x=None, train_y=None):
 
         if (train_x is None): train_x = torch.ones(19, 2916).to(self.device)
         if (train_y is None): train_y = torch.ones(19).to(self.device)
 
-        likelihood = gpytorch.likelihoods.GaussianLikelihood()
-        model = ExactGPLayer(train_x=train_x, train_y=train_y, likelihood=likelihood, kernel=kernel_type)
+        if self.num_tasks==1:
+            likelihood = gpytorch.likelihoods.GaussianLikelihood()
+            model = ExactGPLayer(train_x=train_x, train_y=train_y, likelihood=likelihood, kernel=kernel_type)
+        else:
+            likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=self.num_tasks)
+            model = MultitaskExactGPLayer(train_x=train_x, train_y=train_y, likelihood=likelihood, kernel=kernel_type, num_tasks=self.num_tasks)
 
         self.model = model.to(self.device)
         self.likelihood = likelihood.to(self.device)
@@ -140,3 +146,24 @@ class ExactGPLayer(gpytorch.models.ExactGP):
         mean_x = self.mean_module(x)
         covar_x = self.covar_module(x)
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+
+class MultitaskExactGPLayer(gpytorch.models.ExactGP):
+    def __init__(self, train_x, train_y, likelihood, kernel='nn', num_tasks=2):
+        super(MultitaskGPModel, self).__init__(train_x, train_y, likelihood)
+        self.mean_module = gpytorch.means.MultitaskMean(
+            gpytorch.means.ConstantMean(), num_tasks=num_tasks
+        )
+        if(kernel == "nn"):
+            kernels = []
+            for i in range(num_tasks):
+                kernels.append(NNKernel(input_dim = 2916, output_dim = 16, num_layers=1, hidden_dim=16))
+        else:
+            raise ValueError(
+                "[ERROR] the kernel '" + str(kernel) + "' is not supported for multi-regression, use 'nn'.")            
+        
+        self.covar_module = MultiNNKernel(num_tasks, kernels) 
+
+    def forward(self, x):
+        mean_x = self.mean_module(x)
+        covar_x = self.covar_module(x)
+        return gpytorch.distributions.MultitaskMultivariateNormal(mean_x, covar_x)
