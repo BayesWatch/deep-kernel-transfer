@@ -27,8 +27,10 @@ logging.info('Device: {}'.format(device))
 
 bb = backbone.Conv3().to(device)
 
+
+
 if params.method == 'DKT':
-    model = DKT(bb, device)
+    model = DKT(bb, device, num_tasks=params.num_tasks)
 elif params.method == 'transfer':
     model = FeatureTransfer(bb, device)
 else:
