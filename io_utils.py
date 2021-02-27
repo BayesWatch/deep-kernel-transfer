@@ -74,6 +74,7 @@ def parse_args_regression(script):
     parser.add_argument('--update_batch_size', default=5, type=int,
                         help='Number of examples used for inner gradient update (K for K-shot learning).')
     parser.add_argument('--meta_batch_size', default=5, type=int, help='Number of tasks sampled per meta-update')
+    parser.add_argument('--input_output_dim', default=1, type=int, help='Input/output dim for generated dataset')
 
     if script == 'train_regression':
         parser.add_argument('--start_epoch', default=0, type=int, help='Starting epoch')

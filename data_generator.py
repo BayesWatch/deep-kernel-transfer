@@ -9,7 +9,7 @@ class SinusoidalDataGenerator(object):
     A "class" is considered a particular sinusoid function.
     """
 
-    def __init__(self, num_samples_per_class, batch_size, config={}):
+    def __init__(self, num_samples_per_class, batch_size, input_output_dim=1):
         """
         Args:
             num_samples_per_class: num samples to generate per class in one batch
@@ -20,11 +20,11 @@ class SinusoidalDataGenerator(object):
         self.num_classes = 1  # by default 1 (only relevant for classification problems)
 
         self.generate = self.generate_sinusoid_batch
-        self.amp_range = config.get('amp_range', [0.1, 5.0])
-        self.phase_range = config.get('phase_range', [0, np.pi])
-        self.input_range = config.get('input_range', [-5.0, 5.0])
-        self.dim_input = 1
-        self.dim_output = 1
+        self.amp_range = [0.1, 5.0]
+        self.phase_range = [0, np.pi]
+        self.input_range = [-5.0, 5.0]
+        self.dim_input = input_output_dim
+        self.dim_output = input_output_dim
 
     def generate_sinusoid_batch(self, input_idx=None):
         # input_idx is used during qualitative testing --the number of examples used for the grad update
@@ -34,7 +34,7 @@ class SinusoidalDataGenerator(object):
         init_inputs = np.zeros([self.batch_size, self.num_samples_per_class, self.dim_input])
         for func in range(self.batch_size):
             init_inputs[func] = np.random.uniform(self.input_range[0], self.input_range[1],
-                                                  [self.num_samples_per_class, 1])
+                                                  [self.num_samples_per_class, self.dim_input])
             if input_idx is not None:
                 init_inputs[:, input_idx:, 0] = np.linspace(self.input_range[0], self.input_range[1],
                                                             num=self.num_samples_per_class - input_idx, retstep=False)
