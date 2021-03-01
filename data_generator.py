@@ -9,7 +9,8 @@ class SinusoidalDataGenerator(object):
     A "class" is considered a particular sinusoid function.
     """
 
-    def __init__(self, num_samples_per_class, batch_size, input_output_dim=1):
+    def __init__(self, num_samples_per_class, batch_size, input_output_dim=1, multidimensional_amp=False,
+                 multidimensional_phase=False):
         """
         Args:
             num_samples_per_class: num samples to generate per class in one batch
@@ -25,11 +26,34 @@ class SinusoidalDataGenerator(object):
         self.input_range = [-5.0, 5.0]
         self.dim_input = input_output_dim
         self.dim_output = input_output_dim
+        self.multidimensional_amp = multidimensional_amp
+        self.multidimensional_phase = multidimensional_phase
 
     def generate_sinusoid_batch(self, input_idx=None):
         # input_idx is used during qualitative testing --the number of examples used for the grad update
-        amp = np.random.uniform(self.amp_range[0], self.amp_range[1], [self.batch_size])
-        phase = np.random.uniform(self.phase_range[0], self.phase_range[1], [self.batch_size])
+
+        if self.multidimensional_amp:
+            # y_1 = A_1*sinus(x_1+phi)
+            # y_2 = A_2*sinus(x_2+phi)
+            # ...
+            amp = np.random.uniform(self.amp_range[0], self.amp_range[1], [self.batch_size, self.dim_input])
+        else:
+            # y_1 = A*sinus(x_1+phi)
+            # y_2 = A*sinus(x_2+phi)
+            # ...
+            amp = np.random.uniform(self.amp_range[0], self.amp_range[1], [self.batch_size])
+
+        if self.multidimensional_phase:
+            # y_1 = A*sinus(x_1+phi_1)
+            # y_2 = A*sinus(x_2+phi_2)
+            # ...
+            phase = np.random.uniform(self.phase_range[0], self.phase_range[1], [self.batch_size, self.dim_input])
+        else:
+            # y_1 = A*sinus(x_1+phi)
+            # y_2 = A*sinus(x_2+phi)
+            # ...
+            phase = np.random.uniform(self.phase_range[0], self.phase_range[1], [self.batch_size])
+
         outputs = np.zeros([self.batch_size, self.num_samples_per_class, self.dim_output])
         init_inputs = np.zeros([self.batch_size, self.num_samples_per_class, self.dim_input])
         for func in range(self.batch_size):
