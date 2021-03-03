@@ -3,14 +3,16 @@
 import numpy as np
 
 
+INPUT_DIM=1
+
 class SinusoidalDataGenerator(object):
     """
     Data Generator capable of generating batches of sinusoid data.
     A "class" is considered a particular sinusoid function.
     """
 
-    def __init__(self, num_samples_per_class, batch_size, input_output_dim=1, multidimensional_amp=False,
-                 multidimensional_phase=False):
+    def __init__(self, num_samples_per_class, batch_size, output_dim=1, multidimensional_amp=False,
+                 multidimensional_phase=True):
         """
         Args:
             num_samples_per_class: num samples to generate per class in one batch
@@ -24,8 +26,8 @@ class SinusoidalDataGenerator(object):
         self.amp_range = [0.1, 5.0]
         self.phase_range = [0, np.pi]
         self.input_range = [-5.0, 5.0]
-        self.dim_input = input_output_dim
-        self.dim_output = input_output_dim
+        self.dim_input = INPUT_DIM
+        self.dim_output = output_dim
         self.multidimensional_amp = multidimensional_amp
         self.multidimensional_phase = multidimensional_phase
 
@@ -36,7 +38,7 @@ class SinusoidalDataGenerator(object):
             # y_1 = A_1*sinus(x_1+phi)
             # y_2 = A_2*sinus(x_2+phi)
             # ...
-            amp = np.random.uniform(self.amp_range[0], self.amp_range[1], [self.batch_size, self.dim_input])
+            amp = np.random.uniform(self.amp_range[0], self.amp_range[1], [self.batch_size, self.dim_output])
         else:
             # y_1 = A*sinus(x_1+phi)
             # y_2 = A*sinus(x_2+phi)
@@ -47,7 +49,7 @@ class SinusoidalDataGenerator(object):
             # y_1 = A*sinus(x_1+phi_1)
             # y_2 = A*sinus(x_2+phi_2)
             # ...
-            phase = np.random.uniform(self.phase_range[0], self.phase_range[1], [self.batch_size, self.dim_input])
+            phase = np.random.uniform(self.phase_range[0], self.phase_range[1], [self.batch_size, self.dim_output])
         else:
             # y_1 = A*sinus(x_1+phi)
             # y_2 = A*sinus(x_2+phi)
@@ -56,6 +58,8 @@ class SinusoidalDataGenerator(object):
 
         outputs = np.zeros([self.batch_size, self.num_samples_per_class, self.dim_output])
         init_inputs = np.zeros([self.batch_size, self.num_samples_per_class, self.dim_input])
+        print(init_inputs.shape)
+        print(outputs.shape)
         for func in range(self.batch_size):
             init_inputs[func] = np.random.uniform(self.input_range[0], self.input_range[1],
                                                   [self.num_samples_per_class, self.dim_input])
