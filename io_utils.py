@@ -17,6 +17,17 @@ model_dict = dict(
     ResNet101=backbone.ResNet101)
 
 
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
 def parse_args(script):
     parser = argparse.ArgumentParser(description='few-shot script %s' % (script))
     parser.add_argument('--seed', default=0, type=int, help='Seed for Numpy and pyTorch. Default: 0 (None)')
@@ -74,6 +85,11 @@ def parse_args_regression(script):
     parser.add_argument('--update_batch_size', default=5, type=int,
                         help='Number of examples used for inner gradient update (K for K-shot learning).')
     parser.add_argument('--meta_batch_size', default=5, type=int, help='Number of tasks sampled per meta-update')
+    parser.add_argument('--input_output_dim', default=1, type=int, help='Input/output dim for generated dataset')
+    parser.add_argument('--multidimensional_amp', default=False, type=str2bool,
+                        help='Different amplitudes per each example')
+    parser.add_argument('--multidimensional_phase', default=False, type=str2bool,
+                        help='Different phases per each example')
 
     if script == 'train_regression':
         parser.add_argument('--start_epoch', default=0, type=int, help='Starting epoch')
