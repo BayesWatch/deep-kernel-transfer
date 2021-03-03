@@ -76,11 +76,11 @@ class NNKernel(gpytorch.kernels.Kernel):
                 
 class MultiNNKernel(gpytorch.kernels.Kernel):
     def __init__(self, num_tasks, kernels, **kwargs):
-        super(NNKernel, self).__init__(**kwargs)
+        super(MultiNNKernel, self).__init__(**kwargs)
         assert isinstance(kernels, list), "kernels must be a list of kernels"
         self.num_tasks = num_tasks
         self.kernels = nn.ModuleList(kernels)
-        self.model 
+        
 
     def num_outputs_per_input(self, x1, x2):
         """

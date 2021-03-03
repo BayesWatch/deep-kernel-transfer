@@ -21,10 +21,13 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 params.checkpoint_dir = '%scheckpoints/%s/%s_%s' % (configs.save_dir, params.dataset, params.model, params.method)
-bb = backbone.Conv3().to(device)
+#bb = backbone.Conv3().to(device)
+
+bb = backbone.MLP(input_dim=1, output_dim=params.output_dim).to(device)
+
 
 if params.method == 'DKT':
-    model = DKT(bb, device)
+    model = DKT(bb, device, num_tasks=params.output_dim)
     optimizer = None
 elif params.method == 'transfer':
     model = FeatureTransfer(bb, device)
@@ -36,7 +39,7 @@ model.load_checkpoint(params.checkpoint_dir)
 
 mse_list = []
 for epoch in range(params.n_test_epochs):
-    mse = float(model.test_loop(params.n_support, optimizer).cpu().detach().numpy())
+    mse = float(model.test_loop(params.n_support, optimizer, params).cpu().detach().numpy())
     mse_list.append(mse)
 
 print("-------------------")

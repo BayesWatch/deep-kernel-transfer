@@ -7,7 +7,7 @@ import torch.nn as nn
 
 from configs import kernel_type
 from data.qmul_loader import get_batch, train_people, test_people
-from data_generator import SinusoidalDataGenerator
+from data.data_generator import SinusoidalDataGenerator
 
 
 from kernels import NNKernel, MultiNNKernel
@@ -24,8 +24,11 @@ class DKT(nn.Module):
      
     def get_model_likelihood_mll(self, train_x=None, train_y=None):
 
-        if (train_x is None): train_x = torch.ones(19, 2916).to(self.device)
-        if (train_y is None): train_y = torch.ones(19).to(self.device)
+#        if (train_x is None): train_x = torch.ones(19, 2916).to(self.device)
+#        if (train_y is None): train_y = torch.ones(19).to(self.device)
+        if (train_x is None): train_x = torch.ones(10, 1).to(self.device)
+        if (train_y is None): train_y = torch.ones(10).to(self.device)
+
 
         if self.num_tasks==1:
             likelihood = gpytorch.likelihoods.GaussianLikelihood()
@@ -51,7 +54,7 @@ class DKT(nn.Module):
     def train_loop(self, epoch, optimizer, params):
         #print("NUM KERNEL PARAMS {}".format(sum([p.numel() for p in self.model.parameters() if p.requires_grad])))
         #print("NUM TRANSFORM PARAMS {}".format(sum([p.numel() for p in self.feature_extractor.parameters() if p.requires_grad])))
-        if params.dataset != "sine":
+        if params.dataset != "sines":
             batch, batch_labels = get_batch(train_people)
         else:
             batch, batch_labels, amp, phase = SinusoidalDataGenerator(params.update_batch_size * 2,
@@ -59,8 +62,11 @@ class DKT(nn.Module):
                                                                       params.output_dim,
                                                                       params.multidimensional_amp,
                                                                       params.multidimensional_phase).generate()
+            batch = torch.from_numpy(batch)
+            batch_labels = torch.from_numpy(batch_labels).view(batch_labels.shape[0], -1)
+    
         batch, batch_labels = batch.to(self.device), batch_labels.to(self.device)
-
+        #print(batch.shape, batch_labels.shape)
         for inputs, labels in zip(batch, batch_labels):
             optimizer.zero_grad()
             z = self.feature_extractor(inputs)
@@ -79,7 +85,16 @@ class DKT(nn.Module):
                     self.model.likelihood.noise.item()
                 ))
 
-    def test_loop(self, n_support, optimizer=None):  # no optimizer needed for GP
+    
+    def test_loop(self, n_support, optimizer=None, params=None):
+        if params is None or params.dataset != "sines":
+            return self.test_loop_qmul(n_support, optimizer)
+        elif params.dataset == "sines":
+            return self.test_loop_sines(n_support, params, optimizer)
+        else:
+            raise ValueError("unknown dataset")
+    
+    def test_loop_qmul(self, n_support, optimizer=None):  # no optimizer needed for GP
         inputs, targets = get_batch(test_people)
 
         support_ind = list(np.random.choice(list(range(19)), replace=False, size=n_support))
@@ -112,6 +127,46 @@ class DKT(nn.Module):
 
         return mse
 
+    def test_loop_sines(self, n_support, params, optimizer=None):  # no optimizer needed for GP
+        batch, batch_labels, amp, phase = SinusoidalDataGenerator(params.update_batch_size * 2,
+                                                                      params.meta_batch_size,
+                                                                      params.output_dim,
+                                                                      params.multidimensional_amp,
+                                                                      params.multidimensional_phase).generate()
+        inputs = torch.from_numpy(batch)
+        targets = torch.from_numpy(batch_labels).view(batch_labels.shape[0], -1)
+
+        support_ind = list(np.random.choice(list(range(10)), replace=False, size=n_support))
+        query_ind = [i for i in range(10) if i not in support_ind]
+
+        x_all = inputs.to(self.device)
+        y_all = targets.to(self.device)
+
+        x_support = inputs[:, support_ind, :].to(self.device)
+        y_support = targets[:, support_ind].to(self.device)
+        x_query = inputs[:, query_ind, :]
+        y_query = targets[:, query_ind].to(self.device)
+
+        # choose a random test person
+        n = np.random.randint(0, x_support.shape[0])
+
+        z_support = self.feature_extractor(x_support[n]).detach()
+        self.model.set_train_data(inputs=z_support, targets=y_support[n], strict=False)
+
+        self.model.eval()
+        self.feature_extractor.eval()
+        self.likelihood.eval()
+
+        with torch.no_grad():
+            z_query = self.feature_extractor(x_all[n]).detach()
+            pred = self.likelihood(self.model(z_query))
+            lower, upper = pred.confidence_region()  # 2 standard deviations above and below the mean
+
+        mse = self.mse(pred.mean, y_all[n])
+
+        return mse    
+    
+    
     def save_checkpoint(self, checkpoint):
         # save state
         gp_state_dict = self.model.state_dict()
@@ -137,7 +192,8 @@ class ExactGPLayer(gpytorch.models.ExactGP):
             self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
         ## Spectral kernel
         elif (kernel == 'spectral'):
-            self.covar_module = gpytorch.kernels.SpectralMixtureKernel(num_mixtures=4, ard_num_dims=2916)
+            #self.covar_module = gpytorch.kernels.SpectralMixtureKernel(num_mixtures=4, ard_num_dims=2916)
+            self.covar_module = gpytorch.kernels.SpectralMixtureKernel(num_mixtures=4, ard_num_dims=1)
         elif(kernel ==  "nn"):
             kernel = NNKernel(input_dim = 2916, output_dim = 16, num_layers=1, hidden_dim=16)
             self.covar_module = kernel
@@ -152,7 +208,7 @@ class ExactGPLayer(gpytorch.models.ExactGP):
 
 class MultitaskExactGPLayer(gpytorch.models.ExactGP):
     def __init__(self, train_x, train_y, likelihood, kernel='nn', num_tasks=2):
-        super(MultitaskGPModel, self).__init__(train_x, train_y, likelihood)
+        super(MultitaskExactGPLayer, self).__init__(train_x, train_y, likelihood)
         self.mean_module = gpytorch.means.MultitaskMean(
             gpytorch.means.ConstantMean(), num_tasks=num_tasks
         )

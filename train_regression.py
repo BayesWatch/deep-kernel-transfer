@@ -25,7 +25,7 @@ params.checkpoint_dir = '%scheckpoints/%s/%s_%s' % (configs.save_dir, params.dat
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 logging.info('Device: {}'.format(device))
 
-bb = backbone.Conv3().to(device)
+bb = backbone.MLP(input_dim=1, output_dim=params.output_dim).to(device)
 
 
 
