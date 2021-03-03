@@ -78,7 +78,7 @@ class MultiNNKernel(gpytorch.kernels.Kernel):
     def __init__(self, num_tasks, kernels, **kwargs):
         super(NNKernel, self).__init__(**kwargs)
         assert isinstance(kernels, list), "kernels must be a list of kernels"
-        self.num_tasks = 
+        self.num_tasks = num_tasks
         self.kernels = nn.ModuleList(kernels)
         self.model 
 

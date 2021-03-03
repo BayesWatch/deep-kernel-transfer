@@ -30,7 +30,7 @@ bb = backbone.Conv3().to(device)
 
 
 if params.method == 'DKT':
-    model = DKT(bb, device, num_tasks=params.num_tasks)
+    model = DKT(bb, device, num_tasks=params.output_dim)
 elif params.method == 'transfer':
     model = FeatureTransfer(bb, device)
 else:

@@ -1,0 +1,48 @@
+name: object_tracking
+channels:
+  - defaults
+dependencies:
+  - _libgcc_mutex=0.1=main
+  - ca-certificates=2021.1.19=h06a4308_0
+  - certifi=2020.12.5=py38h06a4308_0
+  - ld_impl_linux-64=2.33.1=h53a641e_7
+  - libedit=3.1.20191231=h14c3975_1
+  - libffi=3.3=he6710b0_2
+  - libgcc-ng=9.1.0=hdf63c60_0
+  - libstdcxx-ng=9.1.0=hdf63c60_0
+  - ncurses=6.2=he6710b0_1
+  - openssl=1.1.1i=h27cfd23_0
+  - pip=20.3.3=py38h06a4308_0
+  - python=3.8.5=h7579374_1
+  - readline=8.0=h7b6447c_0
+  - setuptools=51.3.3=py38h06a4308_4
+  - sqlite=3.33.0=h62c20be_0
+  - tk=8.6.10=hbc83047_0
+  - wheel=0.36.2=pyhd3eb1b0_0
+  - xz=5.2.5=h7b6447c_0
+  - zlib=1.2.11=h7b6447c_3
+  - pip:
+    - cycler==0.10.0
+    - gpytorch==1.0.1
+    - h5py==3.1.0
+    - joblib==1.0.0
+    - kiwisolver==1.3.1
+    - matplotlib==3.3.3
+    - miniimagenettools==0.2.2
+    - numpy==1.19.5
+    - opencv-python==4.5.1.48
+    - pillow==8.1.0
+    - protobuf==3.14.0
+    - pyparsing==2.4.7
+    - python-dateutil==2.8.1
+    - scikit-learn==0.24.1
+    - scipy==1.6.0
+    - six==1.15.0
+    - tensorboardx==2.1
+    - threadpoolctl==2.1.0
+    - torch==1.7.1
+    - torchvision==0.8.2
+    - tqdm==4.56.0
+    - typing-extensions==3.7.4.3
+prefix: /home/msendera/anaconda3/envs/object_tracking
+
