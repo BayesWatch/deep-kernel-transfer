@@ -239,11 +239,16 @@ class MultitaskExactGPLayer(gpytorch.models.ExactGP):
                                         output_dim = config.nn_config["output_dim"],
                                         num_layers = config.nn_config["num_layers"],
                                         hidden_dim = config.nn_config["hidden_dim"]))
+            self.covar_module = MultiNNKernel(num_tasks, kernels)
+        elif kernel == "rbf":
+            self.covar_module = gpytorch.kernels.MultitaskKernel(
+                gpytorch.kernels.RBFKernel(), num_tasks=2, rank=1
+            )
         else:
             raise ValueError(
                 "[ERROR] the kernel '" + str(kernel) + "' is not supported for multi-regression, use 'nn'.")            
         
-        self.covar_module = MultiNNKernel(num_tasks, kernels) 
+
 
     def forward(self, x):
         mean_x = self.mean_module(x)
