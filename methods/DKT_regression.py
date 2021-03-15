@@ -28,8 +28,12 @@ class DKT(nn.Module):
 
 #        if (train_x is None): train_x = torch.ones(19, 2916).to(self.device)
 #        if (train_y is None): train_y = torch.ones(19).to(self.device)
-        if (train_x is None): train_x = torch.ones(10, 1).to(self.device)
-        if (train_y is None): train_y = torch.ones(10).to(self.device)
+        if self.num_tasks == 1:
+            if (train_x is None): train_x = torch.ones(10, 1).to(self.device)
+            if (train_y is None): train_y = torch.ones(10).to(self.device)
+        else:
+            if (train_x is None): train_x = torch.ones(10, self.num_tasks).to(self.device)
+            if (train_y is None): train_y = torch.ones(10, self.num_tasks).to(self.device)
 
 
         if self.num_tasks==1:
@@ -64,8 +68,13 @@ class DKT(nn.Module):
                                                                       params.output_dim,
                                                                       params.multidimensional_amp,
                                                                       params.multidimensional_phase).generate()
-            batch = torch.from_numpy(batch)
-            batch_labels = torch.from_numpy(batch_labels).view(batch_labels.shape[0], -1)
+
+            if self.num_tasks == 1:
+                batch = torch.from_numpy(batch)
+                batch_labels = torch.from_numpy(batch_labels).view(batch_labels.shape[0], -1)
+            else:
+                batch = torch.from_numpy(batch)
+                batch_labels = torch.from_numpy(batch_labels)
     
         batch, batch_labels = batch.to(self.device), batch_labels.to(self.device)
         #print(batch.shape, batch_labels.shape)
@@ -135,8 +144,14 @@ class DKT(nn.Module):
                                                                       params.output_dim,
                                                                       params.multidimensional_amp,
                                                                       params.multidimensional_phase).generate()
-        inputs = torch.from_numpy(batch)
-        targets = torch.from_numpy(batch_labels).view(batch_labels.shape[0], -1)
+
+        if self.num_tasks == 1:
+            inputs = torch.from_numpy(batch)
+            targets = torch.from_numpy(batch_labels).view(batch_labels.shape[0], -1)
+        else:
+            inputs = torch.from_numpy(batch)
+            targets = torch.from_numpy(batch_labels)
+
 
         support_ind = list(np.random.choice(list(range(10)), replace=False, size=n_support))
         query_ind = [i for i in range(10) if i not in support_ind]
