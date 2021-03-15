@@ -9,5 +9,5 @@
 
 source activate object_tracking
 
-python train_regression.py --method="DKT" --output_dim=1 --seed=1 --dataset sines
+python train_regression.py --method="DKT" --output_dim=1 --seed=1 --dataset sines --save_dir ./save/regression_sines_nn --kernel_type nn --stop_epoch 10000
 #python test_regression.py --method="DKT" --output_dim=1 --seed=1 --dataset sines

@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from configs import kernel_type
+
 from data.qmul_loader import get_batch, train_people, test_people
 from data.data_generator import SinusoidalDataGenerator
 
@@ -13,13 +13,15 @@ from data.data_generator import SinusoidalDataGenerator
 from kernels import NNKernel, MultiNNKernel
 
 class DKT(nn.Module):
-    def __init__(self, backbone, device, num_tasks=1):
+    def __init__(self, backbone, device, num_tasks=1,  config=None):
         super(DKT, self).__init__()
         ## GP parameters
         self.feature_extractor = backbone
         self.device = device
         self.num_tasks=num_tasks
+        self.config = config
         self.get_model_likelihood_mll()# Init model, likelihood, and mll
+
 
      
     def get_model_likelihood_mll(self, train_x=None, train_y=None):
@@ -32,10 +34,10 @@ class DKT(nn.Module):
 
         if self.num_tasks==1:
             likelihood = gpytorch.likelihoods.GaussianLikelihood()
-            model = ExactGPLayer(train_x=train_x, train_y=train_y, likelihood=likelihood, kernel=kernel_type)
+            model = ExactGPLayer(config=self.config, train_x=train_x, train_y=train_y, likelihood=likelihood, kernel=self.config.kernel_type)
         else:
             likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=self.num_tasks)
-            model = MultitaskExactGPLayer(train_x=train_x, train_y=train_y, likelihood=likelihood, kernel=kernel_type, num_tasks=self.num_tasks)
+            model = MultitaskExactGPLayer(config=self.config, train_x=train_x, train_y=train_y, likelihood=likelihood, kernel=self.config.kernel_type, num_tasks=self.num_tasks)
 
         self.model = model.to(self.device)
         self.likelihood = likelihood.to(self.device)
@@ -183,7 +185,7 @@ class DKT(nn.Module):
 
 
 class ExactGPLayer(gpytorch.models.ExactGP):
-    def __init__(self, train_x, train_y, likelihood, kernel='linear'):
+    def __init__(self, config, train_x, train_y, likelihood, kernel='linear'):
         super(ExactGPLayer, self).__init__(train_x, train_y, likelihood)
         self.mean_module = gpytorch.means.ConstantMean()
 
@@ -195,7 +197,10 @@ class ExactGPLayer(gpytorch.models.ExactGP):
             #self.covar_module = gpytorch.kernels.SpectralMixtureKernel(num_mixtures=4, ard_num_dims=2916)
             self.covar_module = gpytorch.kernels.SpectralMixtureKernel(num_mixtures=4, ard_num_dims=1)
         elif(kernel ==  "nn"):
-            kernel = NNKernel(input_dim = 2916, output_dim = 16, num_layers=1, hidden_dim=16)
+            kernel = NNKernel(input_dim = config.nn_config["input_dim"],
+                                        output_dim = config.nn_config["output_dim"],
+                                        num_layers = config.nn_config["num_layers"],
+                                        hidden_dim = config.nn_config["hidden_dim"])
             self.covar_module = kernel
         else:
             raise ValueError(
@@ -207,7 +212,7 @@ class ExactGPLayer(gpytorch.models.ExactGP):
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
 class MultitaskExactGPLayer(gpytorch.models.ExactGP):
-    def __init__(self, train_x, train_y, likelihood, kernel='nn', num_tasks=2):
+    def __init__(self, config, train_x, train_y, likelihood, kernel='nn', num_tasks=2):
         super(MultitaskExactGPLayer, self).__init__(train_x, train_y, likelihood)
         self.mean_module = gpytorch.means.MultitaskMean(
             gpytorch.means.ConstantMean(), num_tasks=num_tasks
@@ -215,7 +220,10 @@ class MultitaskExactGPLayer(gpytorch.models.ExactGP):
         if(kernel == "nn"):
             kernels = []
             for i in range(num_tasks):
-                kernels.append(NNKernel(input_dim = 2916, output_dim = 16, num_layers=1, hidden_dim=16))
+                kernels.append(NNKernel(input_dim = config.nn_config["input_dim"],
+                                        output_dim = config.nn_config["output_dim"],
+                                        num_layers = config.nn_config["num_layers"],
+                                        hidden_dim = config.nn_config["hidden_dim"]))
         else:
             raise ValueError(
                 "[ERROR] the kernel '" + str(kernel) + "' is not supported for multi-regression, use 'nn'.")            

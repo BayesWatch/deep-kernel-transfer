@@ -11,7 +11,7 @@ from methods.meta_template import MetaTemplate
 import gpytorch
 from time import gmtime, strftime
 import random
-from configs import kernel_type
+
 
 from kernels import NNKernel
 #Check if tensorboardx is installed
@@ -34,8 +34,9 @@ except ImportError:
 #python3 train.py --dataset="CUB" --method="DKT" --train_n_way=5 --test_n_way=5 --n_shot=5 --train_aug
 
 class DKT(MetaTemplate):
-    def __init__(self, model_func, n_way, n_support):
+    def __init__(self, model_func, n_way, n_support, config=None):
         super(DKT, self).__init__(model_func, n_way, n_support)
+        self.config = config
         ## GP parameters
         self.leghtscale_list = None
         self.noise_list = None
@@ -44,9 +45,9 @@ class DKT(MetaTemplate):
         self.writer=None
         self.feature_extractor = self.feature
         self.get_model_likelihood_mll() #Init model, likelihood, and mll
-        if(kernel_type=="cossim"):
+        if(self.config.kernel_type=="cossim"):
             self.normalize=True
-        elif(kernel_type=="bncossim"):
+        elif(self.config.kernel_type=="bncossim"):
             self.normalize=True
             latent_size = np.prod(self.feature_extractor.final_feat_dim)
             self.feature_extractor.trunk.add_module("bn_out", nn.BatchNorm1d(latent_size))
@@ -66,7 +67,7 @@ class DKT(MetaTemplate):
         likelihood_list = list()
         for train_x, train_y in zip(train_x_list, train_y_list):
             likelihood = gpytorch.likelihoods.GaussianLikelihood()
-            model = ExactGPLayer(train_x=train_x, train_y=train_y, likelihood=likelihood, kernel=kernel_type)
+            model = ExactGPLayer(config = self.config, train_x=train_x, train_y=train_y, likelihood=likelihood, kernel=self.config.kernel_type)
             model_list.append(model)
             likelihood_list.append(model.likelihood)
         self.model = gpytorch.models.IndependentModelList(*model_list).cuda()
@@ -345,7 +346,7 @@ class ExactGPLayer(gpytorch.models.ExactGP):
         covar_module.raw_outputscale
         covar_module.base_kernel.raw_lengthscale
     '''
-    def __init__(self, train_x, train_y, likelihood, kernel='linear'):
+    def __init__(self, config, train_x, train_y, likelihood, kernel='linear'):
         #Set the likelihood noise and enable/disable learning
         likelihood.noise_covar.raw_noise.requires_grad = False
         likelihood.noise_covar.noise = torch.tensor(0.1)
@@ -373,7 +374,10 @@ class ExactGPLayer(gpytorch.models.ExactGP):
             self.covar_module.base_kernel.variance = 1.0
             self.covar_module.base_kernel.raw_variance.requires_grad = False
         elif(kernel=="nn"):
-            kernel = NNKernel(input_dim=1600, output_dim=16, num_layers=1, hidden_dim=16)
+            kernel = NNKernel(input_dim=config.nn_config["input_dim"],
+                              output_dim=config.nn_config["output_dim"],
+                              num_layers=config.nn_config["num_layers"],
+                              hidden_dim=config.nn_config["hidden_dim"])
             self.covar_module = gpytorch.kernels.ScaleKernel(kernel) 
         else:
             raise ValueError("[ERROR] the kernel '" + str(kernel) + "' is not supported!")
