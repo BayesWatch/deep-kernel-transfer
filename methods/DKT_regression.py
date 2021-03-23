@@ -177,11 +177,12 @@ class DKT(nn.Module):
         with torch.no_grad():
             z_query = self.feature_extractor(x_all[n]).detach()
             pred = self.likelihood(self.model(z_query))
+            mean = pred.mean
             lower, upper = pred.confidence_region()  # 2 standard deviations above and below the mean
 
         mse = self.mse(pred.mean, y_all[n])
 
-        return mse    
+        return mse, mean, lower, upper, x_all[n], y_all[n]    
     
     
     def save_checkpoint(self, checkpoint):
