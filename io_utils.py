@@ -44,7 +44,8 @@ def parse_args(script):
                         help='number of labeled data in each class, same as n_support')  # baseline and baseline++ only use this parameter in finetuning
     parser.add_argument('--train_aug', action='store_true',
                         help='perform data augmentation or not during training ')  # still required for save_features.py and test.py to find the model path correctly
-
+    parser.add_argument('--kernel-type', type=str, default='rbf', choices=['rbf','bncossim', 'matern','poli1','poli2','cossim','nn'])
+    parser.add_argument('--save_dir', type=str, default='./save/classification')
     if script == 'train':
         parser.add_argument('--num_classes', default=200, type=int,
                             help='total number of classes in softmax, only used in baseline')  # make it larger than the maximum label value in base class
@@ -90,7 +91,8 @@ def parse_args_regression(script):
                         help='Different amplitudes per each example')
     parser.add_argument('--multidimensional_phase', default=False, type=str2bool,
                         help='Different phases per each example')
-
+    parser.add_argument('--kernel_type', type=str, default='rbf', choices=['rbf','bncossim', 'matern','poli1','poli2','cossim','nn'])
+    parser.add_argument('--save_dir', type=str, default='./save/regression')
     if script == 'train_regression':
         parser.add_argument('--start_epoch', default=0, type=int, help='Starting epoch')
         parser.add_argument('--stop_epoch', default=100, type=int,
