@@ -240,11 +240,7 @@ class MultitaskExactGPLayer(gpytorch.models.ExactGP):
                                         output_dim = config.nn_config["output_dim"],
                                         num_layers = config.nn_config["num_layers"],
                                         hidden_dim = config.nn_config["hidden_dim"])
-            # for i in range(num_tasks):
-            #     kernels.append(NNKernel(input_dim = config.nn_config["input_dim"],
-            #                             output_dim = config.nn_config["output_dim"],
-            #                             num_layers = config.nn_config["num_layers"],
-            #                             hidden_dim = config.nn_config["hidden_dim"]))
+
             self.covar_module = gpytorch.kernels.MultitaskKernel(kernels, num_tasks)
         elif kernel == "rbf":
             self.covar_module = gpytorch.kernels.MultitaskKernel(
