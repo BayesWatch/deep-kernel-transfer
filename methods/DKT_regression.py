@@ -23,7 +23,7 @@ class DKT(nn.Module):
         self.get_model_likelihood_mll()# Init model, likelihood, and mll
 
 
-     
+
     def get_model_likelihood_mll(self, train_x=None, train_y=None):
 
 #        if (train_x is None): train_x = torch.ones(19, 2916).to(self.device)
@@ -67,7 +67,8 @@ class DKT(nn.Module):
                                                                       params.meta_batch_size,
                                                                       params.output_dim,
                                                                       params.multidimensional_amp,
-                                                                      params.multidimensional_phase).generate()
+                                                                      params.multidimensional_phase,
+                                                                      params.noise).generate()
 
             if self.num_tasks == 1:
                 batch = torch.from_numpy(batch)
@@ -75,7 +76,7 @@ class DKT(nn.Module):
             else:
                 batch = torch.from_numpy(batch)
                 batch_labels = torch.from_numpy(batch_labels)
-    
+
         batch, batch_labels = batch.to(self.device), batch_labels.to(self.device)
         #print(batch.shape, batch_labels.shape)
         for inputs, labels in zip(batch, batch_labels):
@@ -96,7 +97,7 @@ class DKT(nn.Module):
                     self.model.likelihood.noise.item()
                 ))
 
-    
+
     def test_loop(self, n_support, optimizer=None, params=None):
         if params is None or params.dataset != "sines":
             return self.test_loop_qmul(n_support, optimizer)
@@ -104,7 +105,7 @@ class DKT(nn.Module):
             return self.test_loop_sines(n_support, params, optimizer)
         else:
             raise ValueError("unknown dataset")
-    
+
     def test_loop_qmul(self, n_support, optimizer=None):  # no optimizer needed for GP
         inputs, targets = get_batch(test_people)
 
@@ -143,7 +144,8 @@ class DKT(nn.Module):
                                                                       params.meta_batch_size,
                                                                       params.output_dim,
                                                                       params.multidimensional_amp,
-                                                                      params.multidimensional_phase).generate()
+                                                                      params.multidimensional_phase,
+                                                                      params.noise).generate()
 
         if self.num_tasks == 1:
             inputs = torch.from_numpy(batch)
@@ -182,9 +184,9 @@ class DKT(nn.Module):
 
         mse = self.mse(pred.mean, y_all[n])
 
-        return mse, mean, lower, upper, x_all[n], y_all[n]    
-    
-    
+        return mse, mean, lower, upper, x_all[n], y_all[n]
+
+
     def save_checkpoint(self, checkpoint):
         # save state
         gp_state_dict = self.model.state_dict()
@@ -250,8 +252,8 @@ class MultitaskExactGPLayer(gpytorch.models.ExactGP):
             )
         else:
             raise ValueError(
-                "[ERROR] the kernel '" + str(kernel) + "' is not supported for multi-regression, use 'nn'.")            
-        
+                "[ERROR] the kernel '" + str(kernel) + "' is not supported for multi-regression, use 'nn'.")
+
 
 
     def forward(self, x):

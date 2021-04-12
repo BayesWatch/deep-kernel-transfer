@@ -91,6 +91,8 @@ def parse_args_regression(script):
                         help='Different amplitudes per each example')
     parser.add_argument('--multidimensional_phase', default=True, type=str2bool,
                         help='Different phases per each example')
+    parser.add_argument('--noise', default=False, type=str2bool,
+                        help='Different phases per each example')
     parser.add_argument('--kernel_type', type=str, default='rbf', choices=['rbf','bncossim', 'matern','poli1','poli2','cossim','nn'])
     parser.add_argument('--save_dir', type=str, default='./save/regression')
     if script == 'train_regression':
