@@ -6,6 +6,10 @@ import numpy as np
 
 import backbone
 
+NONLINEARITIES = ["tanh", "relu", "softplus", "elu", "swish", "square", "identity"]
+SOLVERS = ["dopri5", "bdf", "rk4", "midpoint", 'adams', 'explicit_adams', 'fixed_adams']
+LAYERS = ["ignore", "concat", "concat_v2", "squash", "concatsquash", "scale", "concatscale"]
+
 model_dict = dict(
     Conv4=backbone.Conv4,
     Conv4S=backbone.Conv4S,
@@ -93,6 +97,79 @@ def parse_args_regression(script):
                         help='Different phases per each example')
     parser.add_argument('--kernel_type', type=str, default='rbf', choices=['rbf','bncossim', 'matern','poli1','poli2','cossim','nn'])
     parser.add_argument('--save_dir', type=str, default='./save/regression')
+    if script == 'train_regression':
+        parser.add_argument('--start_epoch', default=0, type=int, help='Starting epoch')
+        parser.add_argument('--stop_epoch', default=100, type=int,
+                            help='Stopping epoch')  # for meta-learning methods, each epoch contains 100 episodes. The default epoch number is dataset dependent. See train.py
+        parser.add_argument('--resume', action='store_true',
+                            help='continue from previous trained model with largest epoch')
+    elif script == 'test_regression':
+        parser.add_argument('--n_support', default=5, type=int,
+                            help='Number of points on trajectory to be given as support points')
+        parser.add_argument('--n_test_epochs', default=10, type=int, help='How many test people?')
+    return parser.parse_args()
+
+
+def parse_args_regressionFlow(script):
+    parser = argparse.ArgumentParser(description='few-shot script %s' % (script))
+    parser.add_argument('--seed', default=0, type=int, help='Seed for Numpy and pyTorch. Default: 0 (None)')
+    parser.add_argument('--model', default='Conv3', help='model: Conv{3} / MLP{2}')
+    parser.add_argument('--method', default='DKT', help='DKT / transfer')
+    parser.add_argument('--dataset', default='QMUL', help='QMUL / sines')
+    parser.add_argument('--spectral', action='store_true', help='Use a spectral covariance kernel function')
+    parser.add_argument('--update_batch_size', default=5, type=int,
+                        help='Number of examples used for inner gradient update (K for K-shot learning).')
+    parser.add_argument('--meta_batch_size', default=5, type=int, help='Number of tasks sampled per meta-update')
+    parser.add_argument('--output_dim', default=1, type=int, help='Input/output dim for generated dataset')
+    parser.add_argument('--multidimensional_amp', default=False, type=str2bool,
+                        help='Different amplitudes per each example')
+    parser.add_argument('--multidimensional_phase', default=False, type=str2bool,
+                        help='Different phases per each example')
+    parser.add_argument('--kernel_type', type=str, default='nn', choices=['rbf','bncossim', 'matern','poli1','poli2','cossim','nn'])
+    parser.add_argument('--save_dir', type=str, default='./save/regression')
+
+    parser.add_argument("--use_conditional",  default=False, type=str2bool,
+                        help='If CNF should be conditional')
+
+    parser.add_argument("--context_dim", type=int, default=16, help='Dimensionality of the context.')
+
+    parser.add_argument(
+        "--layer_type", type=str, default="concatsquash",
+        choices=["ignore", "concat", "concat_v2", "squash", "concatsquash", "concatcoord", "hyper", "blend"]
+    )
+    parser.add_argument('--dims', type=str, default='32-32')
+    parser.add_argument("--num_blocks", type=int, default=2, help='Number of stacked CNFs.')
+    parser.add_argument('--time_length', type=float, default=0.5)
+    parser.add_argument('--train_T', type=eval, default=False)
+    parser.add_argument("--divergence_fn", type=str, default="brute_force", choices=["brute_force", "approximate"])
+    parser.add_argument("--nonlinearity", type=str, default="tanh", choices=NONLINEARITIES)
+
+    parser.add_argument('--solver', type=str, default='dopri5', choices=SOLVERS)
+    parser.add_argument('--atol', type=float, default=1e-5)
+    parser.add_argument('--rtol', type=float, default=1e-5)
+    parser.add_argument("--step_size", type=float, default=None, help="Optional fixed step size.")
+
+    parser.add_argument('--test_solver', type=str, default=None, choices=SOLVERS + [None])
+    parser.add_argument('--test_atol', type=float, default=None)
+    parser.add_argument('--test_rtol', type=float, default=None)
+
+    parser.add_argument('--residual', type=eval, default=False, choices=[True, False])
+    parser.add_argument('--rademacher', type=eval, default=False, choices=[True, False])
+    parser.add_argument('--spectral_norm', type=eval, default=False, choices=[True, False])
+    parser.add_argument('--batch_norm', type=eval, default=False, choices=[True, False])
+    parser.add_argument('--bn_lag', type=float, default=0)
+
+    parser.add_argument('--lr', type=float, default=1e-3)
+    parser.add_argument('--weight_decay', type=float, default=1e-5)
+
+    # Track quantities
+    parser.add_argument('--l1int', type=float, default=None, help="int_t ||f||_1")
+    parser.add_argument('--l2int', type=float, default=None, help="int_t ||f||_2")
+    parser.add_argument('--dl2int', type=float, default=None, help="int_t ||f^T df/dt||_2")
+    parser.add_argument('--JFrobint', type=float, default=None, help="int_t ||df/dx||_F")
+    parser.add_argument('--JdiagFrobint', type=float, default=None, help="int_t ||df_i/dx_i||_F")
+    parser.add_argument('--JoffdiagFrobint', type=float, default=None, help="int_t ||df/dx - df_i/dx_i||_F")
+
     if script == 'train_regression':
         parser.add_argument('--start_epoch', default=0, type=int, help='Starting epoch')
         parser.add_argument('--stop_epoch', default=100, type=int,

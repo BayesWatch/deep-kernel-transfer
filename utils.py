@@ -1,5 +1,7 @@
 import torch
 import numpy as np
+from math import pi
+
 
 def one_hot(y, num_class):         
     return torch.zeros((len(y), num_class)).scatter_(1, y.unsqueeze(1), 1)
@@ -29,3 +31,9 @@ def sparsity(cl_data_file):
         cl_sparsity.append(np.mean([np.sum(x!=0) for x in cl_data_file[cl] ])  ) 
 
     return np.mean(cl_sparsity) 
+
+
+def normal_logprob(z, mu, sigma):
+    log_z = -0.5 * torch.log(2 * pi*sigma)
+    z_diff = z - mu
+    return log_z - 0.5 * z_diff.pow(2) / sigma.pow(2)

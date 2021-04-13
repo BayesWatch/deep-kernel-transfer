@@ -11,9 +11,40 @@ from data.data_generator import SinusoidalDataGenerator
 
 
 from kernels import NNKernel, MultiNNKernel
+from utils import normal_logprob
+
+
+def get_transforms(model, use_context):
+    if use_context:
+        def sample_fn(z, context=None, logpz=None):
+            if logpz is not None:
+                return model(z, context, logpz, reverse=True)
+            else:
+                return model(z, context, reverse=True)
+
+        def density_fn(x, context=None, logpx=None):
+            if logpx is not None:
+                return model(x, context, logpx, reverse=False)
+            else:
+                return model(x, context, reverse=False)
+    else:
+        def sample_fn(z, logpz=None):
+            if logpz is not None:
+                return model(z, logpz, reverse=True)
+            else:
+                return model(z, reverse=True)
+
+        def density_fn(x, logpx=None):
+            if logpx is not None:
+                return model(x, logpx, reverse=False)
+            else:
+                return model(x, reverse=False)
+
+    return sample_fn, density_fn
+
 
 class DKT(nn.Module):
-    def __init__(self, backbone, device, num_tasks=1,  config=None, dataset='QMUL'):
+    def __init__(self, backbone, cnf, device, use_conditional, num_tasks=1,  config=None, dataset='QMUL'):
         super(DKT, self).__init__()
         ## GP parameters
         self.feature_extractor = backbone
@@ -22,6 +53,8 @@ class DKT(nn.Module):
         self.config = config
         self.dataset = dataset
         self.get_model_likelihood_mll()# Init model, likelihood, and mll
+        self.cnf = cnf
+        self.use_conditional = use_conditional
 
     def get_model_likelihood_mll(self, train_x=None, train_y=None):
         if self.dataset == 'QMUL':
@@ -81,14 +114,25 @@ class DKT(nn.Module):
         for inputs, labels in zip(batch, batch_labels):
             optimizer.zero_grad()
             z = self.feature_extractor(inputs)
-
-            self.model.set_train_data(inputs=z, targets=labels)
+            labels = labels.unsqueeze(1)
+            if self.use_conditional:
+                y, delta_log_py = self.cnf(labels, self.model.kernel.model(z),
+                                           torch.zeros(labels.size(0), 1).to(labels))
+            else:
+                y, delta_log_py = self.cnf(labels, torch.zeros(labels.size(0), 1).to(labels))
+            delta_log_py = delta_log_py.view(y.size(0), y.size(1), 1).sum(1)
+            y = y.squeeze()
+            self.model.set_train_data(inputs=z, targets=y)
             predictions = self.model(z)
-            loss = -self.mll(predictions, self.model.train_targets)
-
+            loss = -self.mll(predictions, self.model.train_targets) + torch.mean(delta_log_py)
             loss.backward()
             optimizer.step()
-            mse = self.mse(predictions.mean, labels)
+            sample_fn, _ = get_transforms(self.cnf, self.use_conditional)
+            if self.use_conditional:
+                new_means = sample_fn(predictions.mean.unsqueeze(1), self.model.kernel.model(z))
+            else:
+                new_means = sample_fn(predictions.mean.unsqueeze(1))
+            mse = self.mse(new_means, labels)
 
             if (epoch % 10 == 0):
                 print('[%d] - Loss: %.3f  MSE: %.3f noise: %.3f' % (
@@ -107,7 +151,7 @@ class DKT(nn.Module):
     
     def test_loop_qmul(self, n_support):  # no optimizer needed for GP
         inputs, targets = get_batch(test_people)
-
+        sample_fn, _ = get_transforms(self.cnf, self.use_conditional)
         support_ind = list(np.random.choice(list(range(19)), replace=False, size=n_support))
         query_ind = [i for i in range(19) if i not in support_ind]
 
@@ -132,11 +176,24 @@ class DKT(nn.Module):
         with torch.no_grad():
             z_query = self.feature_extractor(x_all[n]).detach()
             pred = self.likelihood(self.model(z_query))
+            if self.use_conditional:
+                y, delta_log_py = self.cnf(y_all[n].unsqueeze(1), self.model.kernel.model(z_query),
+                                           torch.zeros(y_all[n].size(0), 1).to(y_all[n].unsqueeze(1)))
+                new_means = sample_fn(pred.mean.unsqueeze(1), self.model.kernel.model(z_query))
+            else:
+                y, delta_log_py = self.cnf(y_all[n].unsqueeze(1),
+                                           torch.zeros(y_all[n].size(0), 1).to(y_all[n].unsqueeze(1)))
+                new_means = sample_fn(pred.mean.unsqueeze(1))
+
+            log_py = normal_logprob(y.squeeze(), pred.mean, pred.stddev)
+
+            NLL = -1.0 * torch.mean(log_py - delta_log_py.squeeze())
             lower, upper = pred.confidence_region()  # 2 standard deviations above and below the mean
 
-        mse = self.mse(pred.mean, y_all[n])
+        mse = self.mse(new_means, y_all[n])
 
-        return mse
+        return mse, NLL
+
 
     def test_loop_sines(self, n_support, params):  # no optimizer needed for GP
         batch, batch_labels, amp, phase = SinusoidalDataGenerator(params.update_batch_size * 2,
@@ -187,13 +244,16 @@ class DKT(nn.Module):
         gp_state_dict = self.model.state_dict()
         likelihood_state_dict = self.likelihood.state_dict()
         nn_state_dict = self.feature_extractor.state_dict()
-        torch.save({'gp': gp_state_dict, 'likelihood': likelihood_state_dict, 'net': nn_state_dict}, checkpoint)
+        cnf_dict = self.cnf.state_dict()
+        torch.save({'gp': gp_state_dict, 'likelihood': likelihood_state_dict,
+                    'net': nn_state_dict, 'cnf': cnf_dict}, checkpoint)
 
     def load_checkpoint(self, checkpoint):
         ckpt = torch.load(checkpoint)
         self.model.load_state_dict(ckpt['gp'])
         self.likelihood.load_state_dict(ckpt['likelihood'])
         self.feature_extractor.load_state_dict(ckpt['net'])
+        self.cnf.load_state_dict(ckpt['cnf'])
 
 
 class ExactGPLayer(gpytorch.models.ExactGP):
@@ -209,11 +269,11 @@ class ExactGPLayer(gpytorch.models.ExactGP):
             #self.covar_module = gpytorch.kernels.SpectralMixtureKernel(num_mixtures=4, ard_num_dims=2916)
             self.covar_module = gpytorch.kernels.SpectralMixtureKernel(num_mixtures=4, ard_num_dims=1)
         elif(kernel ==  "nn"):
-            kernel = NNKernel(input_dim = config.nn_config["input_dim"],
+            self.kernel = NNKernel(input_dim = config.nn_config["input_dim"],
                                         output_dim = config.nn_config["output_dim"],
                                         num_layers = config.nn_config["num_layers"],
                                         hidden_dim = config.nn_config["hidden_dim"])
-            self.covar_module = kernel
+            self.covar_module = self.kernel
         else:
             raise ValueError(
                 "[ERROR] the kernel '" + str(kernel) + "' is not supported for regression, use 'rbf' or 'spectral'.")
@@ -222,6 +282,7 @@ class ExactGPLayer(gpytorch.models.ExactGP):
         mean_x = self.mean_module(x)
         covar_x = self.covar_module(x)
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+
 
 class MultitaskExactGPLayer(gpytorch.models.ExactGP):
     def __init__(self, config, train_x, train_y, likelihood, kernel='nn', num_tasks=2):

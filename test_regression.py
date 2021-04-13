@@ -34,7 +34,7 @@ else:
 
 
 if params.method == 'DKT':
-    model = DKT(bb, device, num_tasks=params.output_dim,  config=config)
+    model = DKT(bb, device, num_tasks=params.output_dim,  config=config, dataset=params.dataset)
     optimizer = None
 elif params.method == 'transfer':
     model = FeatureTransfer(bb, device)
@@ -53,10 +53,10 @@ y_list = []
 lists = (mse_list, mean_list, lower_list, upper_list, x_list, y_list)
 for epoch in range(params.n_test_epochs):
     if params.dataset != "sines":
-        mse = float(model.test_loop(params.n_support, optimizer, params).cpu().detach().numpy())
+        mse = float(model.test_loop(params.n_support, params).cpu().detach().numpy())
         mse_list.append(mse)
     else:
-        res = model.test_loop(params.n_support, optimizer, params)
+        res = model.test_loop(params.n_support, params)
         for i, r in enumerate(res):
             lists[i].append(r.cpu().detach().numpy())
 
