@@ -50,11 +50,15 @@ lower_list = []
 upper_list = []
 x_list = []
 y_list = []
-lists = (mse_list, mean_list, lower_list, upper_list, x_list, y_list)
+nll_list = []
+lists = (mse_list, nll_list, mean_list, lower_list, upper_list, x_list, y_list)
 for epoch in range(params.n_test_epochs):
     if params.dataset != "sines":
-        mse = float(model.test_loop(params.n_support, params).cpu().detach().numpy())
+        mse, NLL = model.test_loop(params.n_support, params)
+        mse = float(mse.cpu().detach().numpy())
+        NLL = float(NLL.cpu().detach().numpy())
         mse_list.append(mse)
+        nll_list.append(NLL)
     else:
         res = model.test_loop(params.n_support, params)
         for i, r in enumerate(res):
@@ -64,7 +68,9 @@ print("-------------------")
 print("Average MSE: " + str(np.mean(mse_list)) + " +- " + str(np.std(mse_list)))
 print("-------------------")
 
-
+print("-------------------")
+print("Average NLL: " + str(np.mean(nll_list)) + " +- " + str(np.std(nll_list)))
+print("-------------------")
 
 if params.dataset == "sines":
     save_dict = {"mse": mse_list, "mean": mean_list, "lower": lower_list, "upper": upper_list, "x_list": x_list, "y_list":y_list}

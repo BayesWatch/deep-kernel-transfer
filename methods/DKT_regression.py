@@ -11,6 +11,8 @@ from data.data_generator import SinusoidalDataGenerator
 
 
 from kernels import NNKernel, MultiNNKernel
+from utils import normal_logprob
+
 
 class DKT(nn.Module):
     def __init__(self, backbone, device, num_tasks=1,  config=None, dataset='QMUL'):
@@ -133,10 +135,12 @@ class DKT(nn.Module):
             z_query = self.feature_extractor(x_all[n]).detach()
             pred = self.likelihood(self.model(z_query))
             lower, upper = pred.confidence_region()  # 2 standard deviations above and below the mean
+            log_py = normal_logprob(y_all[n], pred.mean, pred.stddev)
+            NLL = -1.0 * torch.mean(log_py)
 
         mse = self.mse(pred.mean, y_all[n])
 
-        return mse
+        return mse, NLL
 
     def test_loop_sines(self, n_support, params):  # no optimizer needed for GP
         batch, batch_labels, amp, phase = SinusoidalDataGenerator(params.update_batch_size * 2,
@@ -177,10 +181,12 @@ class DKT(nn.Module):
             pred = self.likelihood(self.model(z_query))
             mean = pred.mean
             lower, upper = pred.confidence_region()  # 2 standard deviations above and below the mean
+            log_py = normal_logprob(y_all[n], pred.mean, pred.stddev)
+            NLL = -1.0 * torch.mean(log_py)
 
         mse = self.mse(pred.mean, y_all[n])
 
-        return mse, mean, lower, upper, x_all[n], y_all[n]    
+        return mse, NLL, mean, lower, upper, x_all[n], y_all[n]
 
     def save_checkpoint(self, checkpoint):
         # save state

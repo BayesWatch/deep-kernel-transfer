@@ -125,7 +125,7 @@ def parse_args_regressionFlow(script):
                         help='Different amplitudes per each example')
     parser.add_argument('--multidimensional_phase', default=False, type=str2bool,
                         help='Different phases per each example')
-    parser.add_argument('--kernel_type', type=str, default='nn', choices=['rbf','bncossim', 'matern','poli1','poli2','cossim','nn'])
+    parser.add_argument('--kernel_type', type=str, default='rbf', choices=['rbf','bncossim', 'matern','poli1','poli2','cossim','nn'])
     parser.add_argument('--save_dir', type=str, default='./save/regression')
 
     parser.add_argument("--use_conditional",  default=False, type=str2bool,

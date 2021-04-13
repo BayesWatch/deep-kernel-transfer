@@ -53,12 +53,26 @@ model.load_checkpoint(params.checkpoint_dir)
 
 mse_list = []
 nll_list = []
+mse_list = []
+mean_list = []
+lower_list = []
+upper_list = []
+x_list = []
+y_list = []
+
+lists = (mse_list, nll_list, mean_list, lower_list, upper_list, x_list, y_list)
 for epoch in range(params.n_test_epochs):
-    mse, NLL = model.test_loop(params.n_support)
-    mse = float(mse.cpu().detach().numpy())
-    NLL = float(NLL.cpu().detach().numpy())
-    mse_list.append(mse)
-    nll_list.append(NLL)
+    if params.dataset != "sines":
+        mse, NLL = model.test_loop(params.n_support)
+        mse = float(mse.cpu().detach().numpy())
+        NLL = float(NLL.cpu().detach().numpy())
+        mse_list.append(mse)
+        nll_list.append(NLL)
+    else:
+        res = model.test_loop(params.n_support, params)
+        for i, r in enumerate(res):
+            lists[i].append(r.cpu().detach().numpy())
+
 
 print("-------------------")
 print("Average MSE: " + str(np.mean(mse_list)) + " +- " + str(np.std(mse_list)))

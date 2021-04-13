@@ -167,7 +167,16 @@ class DKT(nn.Module):
         n = np.random.randint(0, len(test_people) - 1)
 
         z_support = self.feature_extractor(x_support[n]).detach()
-        self.model.set_train_data(inputs=z_support, targets=y_support[n], strict=False)
+
+        labels = y_support[n].unsqueeze(1)
+        if self.use_conditional:
+            y, _ = self.cnf(labels, self.model.kernel.model(z_support),
+                                       torch.zeros(labels.size(0), 1).to(labels))
+        else:
+            y, _ = self.cnf(labels, torch.zeros(labels.size(0), 1).to(labels))
+        y = y.squeeze()
+
+        self.model.set_train_data(inputs=z_support, targets=y, strict=False)
 
         self.model.eval()
         self.feature_extractor.eval()
@@ -201,6 +210,7 @@ class DKT(nn.Module):
                                                                       params.output_dim,
                                                                       params.multidimensional_amp,
                                                                       params.multidimensional_phase).generate()
+        sample_fn, _ = get_transforms(self.cnf, self.use_conditional)
 
         if self.num_tasks == 1:
             inputs = torch.from_numpy(batch)
@@ -223,7 +233,15 @@ class DKT(nn.Module):
         n = np.random.randint(0, x_support.shape[0])
 
         z_support = self.feature_extractor(x_support[n]).detach()
-        self.model.set_train_data(inputs=z_support, targets=y_support[n], strict=False)
+        labels = y_support[n].unsqueeze(1)
+        if self.use_conditional:
+            y, _ = self.cnf(labels, self.model.kernel.model(z_support),
+                                       torch.zeros(labels.size(0), 1).to(labels))
+        else:
+            y, _ = self.cnf(labels, torch.zeros(labels.size(0), 1).to(labels))
+        y = y.squeeze()
+
+        self.model.set_train_data(inputs=z_support, targets=y, strict=False)
 
         self.model.eval()
         self.feature_extractor.eval()
@@ -234,10 +252,22 @@ class DKT(nn.Module):
             pred = self.likelihood(self.model(z_query))
             mean = pred.mean
             lower, upper = pred.confidence_region()  # 2 standard deviations above and below the mean
+            if self.use_conditional:
+                y, delta_log_py = self.cnf(y_all[n].unsqueeze(1), self.model.kernel.model(z_query),
+                                           torch.zeros(y_all[n].size(0), 1).to(y_all[n].unsqueeze(1)))
+                new_means = sample_fn(pred.mean.unsqueeze(1), self.model.kernel.model(z_query))
+            else:
+                y, delta_log_py = self.cnf(y_all[n].unsqueeze(1),
+                                           torch.zeros(y_all[n].size(0), 1).to(y_all[n].unsqueeze(1)))
+                new_means = sample_fn(pred.mean.unsqueeze(1))
 
-        mse = self.mse(pred.mean, y_all[n])
+            log_py = normal_logprob(y.squeeze(), pred.mean, pred.stddev)
 
-        return mse, mean, lower, upper, x_all[n], y_all[n]    
+            NLL = -1.0 * torch.mean(log_py - delta_log_py.squeeze())
+
+        mse = self.mse(new_means, y_all[n])
+
+        return mse, NLL, mean, lower, upper, x_all[n], y_all[n]
 
     def save_checkpoint(self, checkpoint):
         # save state
