@@ -2,8 +2,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from data.qmul_loader import get_batch, train_people, test_people
 from data.data_generator import SinusoidalDataGenerator
+from data.qmul_loader import get_batch, train_people, test_people
 
 
 class Regressor(nn.Module):
@@ -41,11 +41,12 @@ class FeatureTransfer(nn.Module):
                                                                       params.meta_batch_size,
                                                                       params.output_dim,
                                                                       params.multidimensional_amp,
-                                                                      params.multidimensional_phase).generate()
-            
+                                                                      params.multidimensional_phase,
+                                                                      params.noise).generate()
+
             batch = torch.from_numpy(batch)
             batch_labels = torch.from_numpy(batch_labels)
-            
+
         batch, batch_labels = batch.to(self.device), batch_labels.to(self.device)
 
         for inputs, labels in zip(batch, batch_labels):
@@ -60,8 +61,21 @@ class FeatureTransfer(nn.Module):
                     epoch, loss.item()
                 ))
 
-    def test_loop(self, n_support, optimizer):  # we need optimizer to take one gradient step
-        inputs, targets = get_batch(test_people)
+    def test_loop(self, n_support, optimizer, params):  # we need optimizer to take one gradient step
+        if params.dataset != "sines":
+            inputs, targets = get_batch(train_people)
+        else:
+            batch, batch_labels, amp, phase = SinusoidalDataGenerator(params.update_batch_size * 2,
+                                                                      params.meta_batch_size,
+                                                                      params.output_dim,
+                                                                      params.multidimensional_amp,
+                                                                      params.multidimensional_phase,
+                                                                      params.noise).generate()
+
+            inputs = torch.from_numpy(batch)
+            targets = torch.from_numpy(batch_labels)
+
+        inputs, targets = inputs.to(self.device), targets.to(self.device)
 
         support_ind = list(np.random.choice(list(range(19)), replace=False, size=n_support))
         query_ind = [i for i in range(19) if i not in support_ind]

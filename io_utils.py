@@ -89,13 +89,15 @@ def parse_args_regression(script):
     parser.add_argument('--output_dim', default=1, type=int, help='Input/output dim for generated dataset')
     parser.add_argument('--multidimensional_amp', default=False, type=str2bool,
                         help='Different amplitudes per each example')
-    parser.add_argument('--multidimensional_phase', default=False, type=str2bool,
+    parser.add_argument('--multidimensional_phase', default=True, type=str2bool,
+                        help='Different phases per each example')
+    parser.add_argument('--noise', default=False, type=str2bool,
                         help='Different phases per each example')
     parser.add_argument('--kernel_type', type=str, default='rbf', choices=['rbf','bncossim', 'matern','poli1','poli2','cossim','nn'])
     parser.add_argument('--save_dir', type=str, default='./save/regression')
     if script == 'train_regression':
         parser.add_argument('--start_epoch', default=0, type=int, help='Starting epoch')
-        parser.add_argument('--stop_epoch', default=100, type=int,
+        parser.add_argument('--stop_epoch', default=1000, type=int,
                             help='Stopping epoch')  # for meta-learning methods, each epoch contains 100 episodes. The default epoch number is dataset dependent. See train.py
         parser.add_argument('--resume', action='store_true',
                             help='continue from previous trained model with largest epoch')

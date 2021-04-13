@@ -2,8 +2,8 @@
 
 import numpy as np
 
+INPUT_DIM = 1
 
-INPUT_DIM=1
 
 class SinusoidalDataGenerator(object):
     """
@@ -12,7 +12,7 @@ class SinusoidalDataGenerator(object):
     """
 
     def __init__(self, num_samples_per_class, batch_size, output_dim=1, multidimensional_amp=False,
-                 multidimensional_phase=True):
+                 multidimensional_phase=True, gaussian_noise=True):
         """
         Args:
             num_samples_per_class: num samples to generate per class in one batch
@@ -30,6 +30,7 @@ class SinusoidalDataGenerator(object):
         self.dim_output = output_dim
         self.multidimensional_amp = multidimensional_amp
         self.multidimensional_phase = multidimensional_phase
+        self.gaussian_noise = gaussian_noise
 
     def generate_sinusoid_batch(self, input_idx=None):
         # input_idx is used during qualitative testing --the number of examples used for the grad update
@@ -56,6 +57,11 @@ class SinusoidalDataGenerator(object):
             # ...
             phase = np.random.uniform(self.phase_range[0], self.phase_range[1], [self.batch_size])
 
+        if self.gaussian_noise is True:
+            noise = np.random.normal(0, 1, [self.batch_size, self.num_samples_per_class, self.dim_output])
+        else:
+            noise = np.zeros([self.batch_size, self.num_samples_per_class, self.dim_output])
+
         outputs = np.zeros([self.batch_size, self.num_samples_per_class, self.dim_output])
         init_inputs = np.zeros([self.batch_size, self.num_samples_per_class, self.dim_input])
         for func in range(self.batch_size):
@@ -64,5 +70,6 @@ class SinusoidalDataGenerator(object):
             if input_idx is not None:
                 init_inputs[:, input_idx:, 0] = np.linspace(self.input_range[0], self.input_range[1],
                                                             num=self.num_samples_per_class - input_idx, retstep=False)
-            outputs[func] = amp[func] * np.sin(init_inputs[func] - phase[func])
-        return init_inputs.astype(np.float32), outputs.astype(np.float32), amp.astype(np.float32), phase.astype(np.float32)
+            outputs[func] = amp[func] * np.sin(init_inputs[func] - phase[func]) + noise[func]
+        return init_inputs.astype(np.float32), outputs.astype(np.float32), amp.astype(np.float32), phase.astype(
+            np.float32)
