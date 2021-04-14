@@ -119,7 +119,7 @@ class MultiNNKernel(gpytorch.kernels.Kernel):
             else:
                 n = x1.shape[0]
                 m = x2.shape[0]
-                out = torch.zeros((n*self.num_tasks, m*self.num_tasks), device=x1.get_device())
+                out = torch.zeros((n*self.num_tasks, m*self.num_tasks))
                 for i in range(self.num_tasks):
                     for j in range(self.num_tasks):
                         #print(x1.shape, x2.shape)

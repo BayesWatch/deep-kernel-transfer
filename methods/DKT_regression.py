@@ -69,7 +69,8 @@ class DKT(nn.Module):
                                                                       params.meta_batch_size,
                                                                       params.output_dim,
                                                                       params.multidimensional_amp,
-                                                                      params.multidimensional_phase).generate()
+                                                                      params.multidimensional_phase,
+                                                                      params.noise).generate()
 
             if self.num_tasks == 1:
                 batch = torch.from_numpy(batch)
@@ -77,7 +78,7 @@ class DKT(nn.Module):
             else:
                 batch = torch.from_numpy(batch)
                 batch_labels = torch.from_numpy(batch_labels)
-    
+
         batch, batch_labels = batch.to(self.device), batch_labels.to(self.device)
         #print(batch.shape, batch_labels.shape)
         for inputs, labels in zip(batch, batch_labels):
@@ -147,7 +148,8 @@ class DKT(nn.Module):
                                                                       params.meta_batch_size,
                                                                       params.output_dim,
                                                                       params.multidimensional_amp,
-                                                                      params.multidimensional_phase).generate()
+                                                                      params.multidimensional_phase,
+                                                                      params.noise).generate()
 
         if self.num_tasks == 1:
             inputs = torch.from_numpy(batch)
@@ -236,21 +238,20 @@ class MultitaskExactGPLayer(gpytorch.models.ExactGP):
             gpytorch.means.ConstantMean(), num_tasks=num_tasks
         )
         if(kernel == "nn"):
-            kernels = []
-            for i in range(num_tasks):
-                kernels.append(NNKernel(input_dim = config.nn_config["input_dim"],
+            kernels = NNKernel(input_dim = config.nn_config["input_dim"],
                                         output_dim = config.nn_config["output_dim"],
                                         num_layers = config.nn_config["num_layers"],
-                                        hidden_dim = config.nn_config["hidden_dim"]))
-            self.covar_module = MultiNNKernel(num_tasks, kernels)
+                                        hidden_dim = config.nn_config["hidden_dim"])
+
+            self.covar_module = gpytorch.kernels.MultitaskKernel(kernels, num_tasks)
         elif kernel == "rbf":
             self.covar_module = gpytorch.kernels.MultitaskKernel(
                 gpytorch.kernels.RBFKernel(), num_tasks=2, rank=1
             )
         else:
             raise ValueError(
-                "[ERROR] the kernel '" + str(kernel) + "' is not supported for multi-regression, use 'nn'.")            
-        
+                "[ERROR] the kernel '" + str(kernel) + "' is not supported for multi-regression, use 'nn'.")
+
 
 
     def forward(self, x):
