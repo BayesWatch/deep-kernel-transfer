@@ -132,7 +132,7 @@ class DKT(nn.Module):
                 new_means = sample_fn(predictions.mean.unsqueeze(1), self.model.kernel.model(z))
             else:
                 new_means = sample_fn(predictions.mean.unsqueeze(1))
-            mse = self.mse(new_means, labels)
+            mse = self.mse(new_means.squeeze(), labels)
 
             if (epoch % 10 == 0):
                 print('[%d] - Loss: %.3f  MSE: %.3f noise: %.3f' % (
@@ -169,14 +169,15 @@ class DKT(nn.Module):
         z_support = self.feature_extractor(x_support[n]).detach()
 
         labels = y_support[n].unsqueeze(1)
-        if self.use_conditional:
-            y, _ = self.cnf(labels, self.model.kernel.model(z_support),
-                                       torch.zeros(labels.size(0), 1).to(labels))
-        else:
-            y, _ = self.cnf(labels, torch.zeros(labels.size(0), 1).to(labels))
-        y = y.squeeze()
+        with torch.no_grad():
+            if self.use_conditional:
+                y_support, _ = self.cnf(labels, self.model.kernel.model(z_support),
+                                           torch.zeros(labels.size(0), 1).to(labels))
+            else:
+                y_support, _ = self.cnf(labels, torch.zeros(labels.size(0), 1).to(labels))
+        y_support = y_support.squeeze()
 
-        self.model.set_train_data(inputs=z_support, targets=y, strict=False)
+        self.model.set_train_data(inputs=z_support, targets=y_support, strict=False)
 
         self.model.eval()
         self.feature_extractor.eval()
@@ -199,7 +200,7 @@ class DKT(nn.Module):
             NLL = -1.0 * torch.mean(log_py - delta_log_py.squeeze())
             lower, upper = pred.confidence_region()  # 2 standard deviations above and below the mean
 
-        mse = self.mse(new_means, y_all[n])
+        mse = self.mse(new_means.squeeze(), y_all[n])
 
         return mse, NLL
 
@@ -234,14 +235,15 @@ class DKT(nn.Module):
 
         z_support = self.feature_extractor(x_support[n]).detach()
         labels = y_support[n].unsqueeze(1)
-        if self.use_conditional:
-            y, _ = self.cnf(labels, self.model.kernel.model(z_support),
-                                       torch.zeros(labels.size(0), 1).to(labels))
-        else:
-            y, _ = self.cnf(labels, torch.zeros(labels.size(0), 1).to(labels))
-        y = y.squeeze()
+        with torch.no_grad():
+            if self.use_conditional:
+                y_support, _ = self.cnf(labels, self.model.kernel.model(z_support),
+                                           torch.zeros(labels.size(0), 1).to(labels))
+            else:
+                y_support, _ = self.cnf(labels, torch.zeros(labels.size(0), 1).to(labels))
+        y_support = y_support.squeeze()
 
-        self.model.set_train_data(inputs=z_support, targets=y, strict=False)
+        self.model.set_train_data(inputs=z_support, targets=y_support, strict=False)
 
         self.model.eval()
         self.feature_extractor.eval()
@@ -265,7 +267,7 @@ class DKT(nn.Module):
 
             NLL = -1.0 * torch.mean(log_py - delta_log_py.squeeze())
 
-        mse = self.mse(new_means, y_all[n])
+        mse = self.mse(new_means.squeeze(), y_all[n])
 
         return mse, NLL, mean, lower, upper, x_all[n], y_all[n]
 
