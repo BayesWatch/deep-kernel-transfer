@@ -5,17 +5,14 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-
-from data.qmul_loader import get_batch, train_people, test_people
 from data.data_generator import SinusoidalDataGenerator
-
-
-from kernels import NNKernel, MultiNNKernel
-from utils import normal_logprob
+from data.qmul_loader import get_batch, train_people, test_people
+from models.kernels import NNKernel
+from training.utils import normal_logprob
 
 
 class DKT(nn.Module):
-    def __init__(self, backbone, device, num_tasks=1,  config=None, dataset='QMUL'):
+    def __init__(self, backbone, device, num_tasks=1, config=None, dataset='QMUL'):
         super(DKT, self).__init__()
         ## GP parameters
         self.feature_extractor = backbone
@@ -23,7 +20,7 @@ class DKT(nn.Module):
         self.num_tasks = num_tasks
         self.config = config
         self.dataset = dataset
-        self.get_model_likelihood_mll()# Init model, likelihood, and mll
+        self.get_model_likelihood_mll()  # Init model, likelihood, and mll
 
     def get_model_likelihood_mll(self, train_x=None, train_y=None):
         if self.dataset == 'QMUL':
@@ -58,10 +55,9 @@ class DKT(nn.Module):
     def set_forward_loss(self, x):
         pass
 
-
-    def train_loop(self, epoch, optimizer, params):
-        #print("NUM KERNEL PARAMS {}".format(sum([p.numel() for p in self.model.parameters() if p.requires_grad])))
-        #print("NUM TRANSFORM PARAMS {}".format(sum([p.numel() for p in self.feature_extractor.parameters() if p.requires_grad])))
+    def train_loop(self, epoch, optimizer, params, results_logger):
+        # print("NUM KERNEL PARAMS {}".format(sum([p.numel() for p in self.model.parameters() if p.requires_grad])))
+        # print("NUM TRANSFORM PARAMS {}".format(sum([p.numel() for p in self.feature_extractor.parameters() if p.requires_grad])))
         if self.dataset != "sines":
             batch, batch_labels = get_batch(train_people)
         else:
@@ -80,7 +76,7 @@ class DKT(nn.Module):
                 batch_labels = torch.from_numpy(batch_labels)
 
         batch, batch_labels = batch.to(self.device), batch_labels.to(self.device)
-        #print(batch.shape, batch_labels.shape)
+        # print(batch.shape, batch_labels.shape)
         for inputs, labels in zip(batch, batch_labels):
             optimizer.zero_grad()
             z = self.feature_extractor(inputs)
@@ -98,8 +94,11 @@ class DKT(nn.Module):
                     epoch, loss.item(), mse.item(),
                     self.model.likelihood.noise.item()
                 ))
+                results_logger.log("epoch", epoch)
+                results_logger.log("loss", loss.item())
+                results_logger.log("MSE", mse.item())
+                results_logger.log("noise", self.model.likelihood.noise.item())
 
-    
     def test_loop(self, n_support, params=None):
         if params is None or self.dataset != "sines":
             return self.test_loop_qmul(n_support)
@@ -107,7 +106,7 @@ class DKT(nn.Module):
             return self.test_loop_sines(n_support, params)
         else:
             raise ValueError("unknown dataset")
-    
+
     def test_loop_qmul(self, n_support):  # no optimizer needed for GP
         inputs, targets = get_batch(test_people)
 
@@ -135,21 +134,22 @@ class DKT(nn.Module):
         with torch.no_grad():
             z_query = self.feature_extractor(x_all[n]).detach()
             pred = self.likelihood(self.model(z_query))
+            mean = pred.mean
             lower, upper = pred.confidence_region()  # 2 standard deviations above and below the mean
             log_py = normal_logprob(y_all[n], pred.mean, pred.stddev)
             NLL = -1.0 * torch.mean(log_py)
 
         mse = self.mse(pred.mean, y_all[n])
 
-        return mse, NLL
+        return mse, NLL, mean, lower, upper, x_all[n], y_all[n]
 
     def test_loop_sines(self, n_support, params):  # no optimizer needed for GP
         batch, batch_labels, amp, phase = SinusoidalDataGenerator(params.update_batch_size * 2,
-                                                                      params.meta_batch_size,
-                                                                      params.output_dim,
-                                                                      params.multidimensional_amp,
-                                                                      params.multidimensional_phase,
-                                                                      params.noise).generate()
+                                                                  params.meta_batch_size,
+                                                                  params.output_dim,
+                                                                  params.multidimensional_amp,
+                                                                  params.multidimensional_phase,
+                                                                  params.noise).generate()
 
         if self.num_tasks == 1:
             inputs = torch.from_numpy(batch)
@@ -157,7 +157,6 @@ class DKT(nn.Module):
         else:
             inputs = torch.from_numpy(batch)
             targets = torch.from_numpy(batch_labels)
-
 
         support_ind = list(np.random.choice(list(range(10)), replace=False, size=n_support))
         query_ind = [i for i in range(10) if i not in support_ind]
@@ -214,13 +213,13 @@ class ExactGPLayer(gpytorch.models.ExactGP):
             self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
         ## Spectral kernel
         elif (kernel == 'spectral'):
-            #self.covar_module = gpytorch.kernels.SpectralMixtureKernel(num_mixtures=4, ard_num_dims=2916)
+            # self.covar_module = gpytorch.kernels.SpectralMixtureKernel(num_mixtures=4, ard_num_dims=2916)
             self.covar_module = gpytorch.kernels.SpectralMixtureKernel(num_mixtures=4, ard_num_dims=1)
-        elif(kernel ==  "nn"):
-            kernel = NNKernel(input_dim = config.nn_config["input_dim"],
-                                        output_dim = config.nn_config["output_dim"],
-                                        num_layers = config.nn_config["num_layers"],
-                                        hidden_dim = config.nn_config["hidden_dim"])
+        elif (kernel == "nn"):
+            kernel = NNKernel(input_dim=config.nn_config["input_dim"],
+                              output_dim=config.nn_config["output_dim"],
+                              num_layers=config.nn_config["num_layers"],
+                              hidden_dim=config.nn_config["hidden_dim"])
             self.covar_module = kernel
         else:
             raise ValueError(
@@ -231,17 +230,18 @@ class ExactGPLayer(gpytorch.models.ExactGP):
         covar_x = self.covar_module(x)
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
+
 class MultitaskExactGPLayer(gpytorch.models.ExactGP):
     def __init__(self, config, train_x, train_y, likelihood, kernel='nn', num_tasks=2):
         super(MultitaskExactGPLayer, self).__init__(train_x, train_y, likelihood)
         self.mean_module = gpytorch.means.MultitaskMean(
             gpytorch.means.ConstantMean(), num_tasks=num_tasks
         )
-        if(kernel == "nn"):
-            kernels = NNKernel(input_dim = config.nn_config["input_dim"],
-                                        output_dim = config.nn_config["output_dim"],
-                                        num_layers = config.nn_config["num_layers"],
-                                        hidden_dim = config.nn_config["hidden_dim"])
+        if (kernel == "nn"):
+            kernels = NNKernel(input_dim=config.nn_config["input_dim"],
+                               output_dim=config.nn_config["output_dim"],
+                               num_layers=config.nn_config["num_layers"],
+                               hidden_dim=config.nn_config["hidden_dim"])
 
             self.covar_module = gpytorch.kernels.MultitaskKernel(kernels, num_tasks)
         elif kernel == "rbf":
@@ -251,8 +251,6 @@ class MultitaskExactGPLayer(gpytorch.models.ExactGP):
         else:
             raise ValueError(
                 "[ERROR] the kernel '" + str(kernel) + "' is not supported for multi-regression, use 'nn'.")
-
-
 
     def forward(self, x):
         mean_x = self.mean_module(x)

@@ -33,7 +33,7 @@ class FeatureTransfer(nn.Module):
         self.criterion = nn.MSELoss()
         self.device = device
 
-    def train_loop(self, epoch, optimizer, params):
+    def train_loop(self, epoch, optimizer, params, results_logger):
         if params.dataset != "sines":
             batch, batch_labels = get_batch(train_people)
         else:
@@ -60,6 +60,8 @@ class FeatureTransfer(nn.Module):
                 print('[%d] - Loss: %.3f' % (
                     epoch, loss.item()
                 ))
+                results_logger.log("epoch", epoch)
+                results_logger.log("loss", loss.item())
 
     def test_loop(self, n_support, optimizer, params):  # we need optimizer to take one gradient step
         if params.dataset != "sines":
