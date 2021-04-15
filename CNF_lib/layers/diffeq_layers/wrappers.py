@@ -1,4 +1,5 @@
 from inspect import signature
+
 import torch.nn as nn
 
 __all__ = ["diffeq_wrapper", "reshape_wrapper"]

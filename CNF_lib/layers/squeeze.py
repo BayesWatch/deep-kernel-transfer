@@ -34,7 +34,7 @@ def unsqueeze(input, upscale_factor=2):
     [:, C*r^2, H, W] -> [:, C, H*r, W*r]
     '''
     batch_size, in_channels, in_height, in_width = input.size()
-    out_channels = in_channels // (upscale_factor**2)
+    out_channels = in_channels // (upscale_factor ** 2)
 
     out_height = in_height * upscale_factor
     out_width = in_width * upscale_factor
@@ -50,7 +50,7 @@ def squeeze(input, downscale_factor=2):
     [:, C, H*r, W*r] -> [:, C*r^2, H, W]
     '''
     batch_size, in_channels, in_height, in_width = input.size()
-    out_channels = in_channels * (downscale_factor**2)
+    out_channels = in_channels * (downscale_factor ** 2)
 
     out_height = in_height // downscale_factor
     out_width = in_width // downscale_factor

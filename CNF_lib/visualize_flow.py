@@ -1,5 +1,6 @@
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import torch
@@ -74,7 +75,7 @@ def plt_flow_density(prior_logdensity, inverse_transform, ax, npts=100, memory=1
 
     z, delta_logp = [], []
     inds = torch.arange(0, x.shape[0]).to(torch.int64)
-    for ii in torch.split(inds, int(memory**2)):
+    for ii in torch.split(inds, int(memory ** 2)):
         z_, delta_logp_ = inverse_transform(x[ii], zeros[ii])
         z.append(z_)
         delta_logp.append(delta_logp_)
@@ -96,7 +97,7 @@ def plt_flow_samples(prior_sample, transform, ax, npts=100, memory=100, title="$
     z = prior_sample(npts * npts, 2).type(torch.float32).to(device)
     zk = []
     inds = torch.arange(0, z.shape[0]).to(torch.int64)
-    for ii in torch.split(inds, int(memory**2)):
+    for ii in torch.split(inds, int(memory ** 2)):
         zk.append(transform(z[ii]))
     zk = torch.cat(zk, 0).cpu().numpy()
     ax.hist2d(zk[:, 0], zk[:, 1], range=[[LOW_X, HIGH_X], [LOW_Y, HIGH_Y]], bins=npts)
@@ -115,8 +116,9 @@ def plt_samples(samples, ax, npts=100, title="$x ~ p(x)$"):
 
 
 def visualize_transform(
-    potential_or_samples, prior_sample, prior_density, transform=None, inverse_transform=None, samples=True, npts=100,
-    memory=100, device="cpu"
+        potential_or_samples, prior_sample, prior_density, transform=None, inverse_transform=None, samples=True,
+        npts=100,
+        memory=100, device="cpu"
 ):
     """Produces visualization for the model density and samples from the model."""
     plt.clf()
