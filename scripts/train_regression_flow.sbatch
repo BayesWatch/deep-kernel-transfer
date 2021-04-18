@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --qos=quick
+#SBATCH --qos=test
 #SBATCH --gres=gpu:1
 #SBATCH --mem=16G
 #SBATCH --partition=dgx

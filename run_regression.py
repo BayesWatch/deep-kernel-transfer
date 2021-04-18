@@ -4,8 +4,8 @@ import os
 import numpy as np
 import torch
 
-from methods.DKT_regression import DKT
-from methods.DKT_regressionFlow import DKT as DKT_flow
+
+from methods.DKT_regression import DKT as DKT_flow
 from methods.feature_transfer_regression import FeatureTransfer
 from models import backbone
 from reporting.loggers import ResultsLogger
@@ -110,13 +110,13 @@ def setup_model(bb, config, device, params):
     if params.flow:
         cnf = setup_flow(device, params)
         if params.method == 'DKT':
-            model = DKT_flow(bb, cnf, device, use_conditional=params.use_conditional,
-                             num_tasks=params.output_dim, config=config, dataset=params.dataset)
+            model = DKT_flow(bb, device, num_tasks=params.num_tasks, config=config,
+                             dataset=params.dataset, cnf=cnf, use_conditional=params.use_conditional)
         else:
             raise ValueError('Unrecognised method')
     else:
         if params.method == 'DKT':
-            model = DKT(bb, device, num_tasks=params.num_tasks, config=config, dataset=params.dataset)
+            model = DKT_flow(bb, device, num_tasks=params.num_tasks, config=config, dataset=params.dataset, cnf=None)
         elif params.method == 'transfer':
             model = FeatureTransfer(bb, device)
         else:
