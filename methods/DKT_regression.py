@@ -90,7 +90,7 @@ class DKT(nn.Module):
     def set_forward_loss(self, x):
         pass
 
-    def train_loop(self, epoch, optimizer, params, results_logger):
+    def train_loop(self, epoch, optimizer, params, results_logger, scheduler):
         # print("NUM KERNEL PARAMS {}".format(sum([p.numel() for p in self.model.parameters() if p.requires_grad])))
         # print("NUM TRANSFORM PARAMS {}".format(sum([p.numel() for p in self.feature_extractor.parameters() if p.requires_grad])))
         if self.dataset != "sines":
@@ -126,6 +126,7 @@ class DKT(nn.Module):
                 loss = loss + torch.mean(delta_log_py)
             loss.backward()
             optimizer.step()
+            scheduler.step()
 
             mse, _ = self.compute_mse(labels, predictions, z)
 
@@ -225,7 +226,8 @@ class DKT(nn.Module):
                                                                   params.meta_batch_size,
                                                                   params.output_dim,
                                                                   params.multidimensional_amp,
-                                                                  params.multidimensional_phase).generate()
+                                                                  params.multidimensional_phase,
+                                                                  params.noise).generate()
         if self.num_tasks == 1:
             inputs = torch.from_numpy(batch)
             targets = torch.from_numpy(batch_labels).view(batch_labels.shape[0], -1)
@@ -245,16 +247,21 @@ class DKT(nn.Module):
         gp_state_dict = self.model.state_dict()
         likelihood_state_dict = self.likelihood.state_dict()
         nn_state_dict = self.feature_extractor.state_dict()
-        cnf_dict = self.cnf.state_dict()
-        torch.save({'gp': gp_state_dict, 'likelihood': likelihood_state_dict,
-                    'net': nn_state_dict, 'cnf': cnf_dict}, checkpoint)
+
+        state_dicts = {'gp': gp_state_dict, 'likelihood': likelihood_state_dict,
+                    'net': nn_state_dict}
+        if self.is_flow:
+            cnf_dict = self.cnf.state_dict()
+            state_dicts['cnf'] = cnf_dict
+        torch.save(state_dicts, checkpoint)
 
     def load_checkpoint(self, checkpoint):
         ckpt = torch.load(checkpoint)
         self.model.load_state_dict(ckpt['gp'])
         self.likelihood.load_state_dict(ckpt['likelihood'])
         self.feature_extractor.load_state_dict(ckpt['net'])
-        self.cnf.load_state_dict(ckpt['cnf'])
+        if self.is_flow:
+            self.cnf.load_state_dict(ckpt['cnf'])
 
 
 class ExactGPLayer(gpytorch.models.ExactGP):
@@ -296,19 +303,19 @@ class MultitaskExactGPLayer(gpytorch.models.ExactGP):
         )
         self.dataset = dataset
         if (kernel == "nn"):
-            # kernels = []
-            # for i in range(num_tasks):
-            #     kernels.append(NNKernel(input_dim=config.nn_config["input_dim"],
-            #                             output_dim=config.nn_config["output_dim"],
-            #                             num_layers=config.nn_config["num_layers"],
-            #                             hidden_dim=config.nn_config["hidden_dim"]))
-            # self.covar_module = MultiNNKernel(num_tasks, kernels)
-            kernels = NNKernel(input_dim=config.nn_config["input_dim"],
-                               output_dim=config.nn_config["output_dim"],
-                               num_layers=config.nn_config["num_layers"],
-                               hidden_dim=config.nn_config["hidden_dim"])
-
-            self.covar_module = gpytorch.kernels.MultitaskKernel(kernels, num_tasks)
+            kernels = []
+            for i in range(num_tasks):
+                kernels.append(NNKernel(input_dim=config.nn_config["input_dim"],
+                                        output_dim=config.nn_config["output_dim"],
+                                        num_layers=config.nn_config["num_layers"],
+                                        hidden_dim=config.nn_config["hidden_dim"]))
+            self.covar_module = MultiNNKernel(num_tasks, kernels)
+            # kernels = NNKernel(input_dim=config.nn_config["input_dim"],
+            #                    output_dim=config.nn_config["output_dim"],
+            #                    num_layers=config.nn_config["num_layers"],
+            #                    hidden_dim=config.nn_config["hidden_dim"])
+            #
+            # self.covar_module = gpytorch.kernels.MultitaskKernel(kernels, num_tasks)
         elif kernel == "rbf":
             self.covar_module = gpytorch.kernels.MultitaskKernel(
                 gpytorch.kernels.RBFKernel(), num_tasks=2, rank=1

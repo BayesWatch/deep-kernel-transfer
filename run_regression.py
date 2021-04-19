@@ -4,7 +4,7 @@ import os
 import numpy as np
 import torch
 
-
+from torch.optim.lr_scheduler import StepLR
 from methods.DKT_regression import DKT as DKT_flow
 from methods.feature_transfer_regression import FeatureTransfer
 from models import backbone
@@ -32,18 +32,19 @@ def main():
     bb = setup_backbone(device, params)
     model = setup_model(bb, config, device, params)
     optimizer = setup_optimizer(model, params)
+    scheduler = StepLR(optimizer, step_size=1600, gamma=0.01)
 
     if params.test:
         test(model, params, save_path, results_logger)
     else:
-        train(model, optimizer, params, save_path, results_logger)
+        train(model, optimizer, params, save_path, results_logger, scheduler)
 
     results_logger.save()
 
 
-def train(model, optimizer, params, save_path, results_logger):
+def train(model, optimizer, params, save_path, results_logger, scheduler):
     for epoch in range(params.stop_epoch):
-        model.train_loop(epoch, optimizer, params, results_logger)
+        model.train_loop(epoch, optimizer, params, results_logger, scheduler)
     model.save_checkpoint(save_path)
 
 
