@@ -92,7 +92,7 @@ def parse_args_regression():
     parser.add_argument('--output_dim', default=1, type=int, help='Input/output dim for generated dataset')
     parser.add_argument('--multidimensional_amp', default=False, type=str2bool,
                         help='Different amplitudes per each example')
-    parser.add_argument('--multidimensional_phase', default=False, type=str2bool,
+    parser.add_argument('--multidimensional_phase', default=True, type=str2bool,
                         help='Different phases per each example')
     parser.add_argument('--noise', default=False, type=str2bool,
                         help='Different phases per each example')
