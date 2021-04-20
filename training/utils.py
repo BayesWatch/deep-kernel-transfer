@@ -1,10 +1,52 @@
-import six
 import math
+from math import pi
 
+import numpy as np
+import six
+import torch
+
+import CNF_lib.layers as layers
 import CNF_lib.layers.wrappers.cnf_regularization as reg_lib
 import CNF_lib.spectral_norm as spectral_norm
-import CNF_lib.layers as layers
 from CNF_lib.layers.odefunc import divergence_bf, divergence_approx
+
+
+def one_hot(y, num_class):
+    return torch.zeros((len(y), num_class)).scatter_(1, y.unsqueeze(1), 1)
+
+
+def DBindex(cl_data_file):
+    class_list = cl_data_file.keys()
+    cl_num = len(class_list)
+    cl_means = []
+    stds = []
+    DBs = []
+    for cl in class_list:
+        cl_means.append(np.mean(cl_data_file[cl], axis=0))
+        stds.append(np.sqrt(np.mean(np.sum(np.square(cl_data_file[cl] - cl_means[-1]), axis=1))))
+
+    mu_i = np.tile(np.expand_dims(np.array(cl_means), axis=0), (len(class_list), 1, 1))
+    mu_j = np.transpose(mu_i, (1, 0, 2))
+    mdists = np.sqrt(np.sum(np.square(mu_i - mu_j), axis=2))
+
+    for i in range(cl_num):
+        DBs.append(np.max([(stds[i] + stds[j]) / mdists[i, j] for j in range(cl_num) if j != i]))
+    return np.mean(DBs)
+
+
+def sparsity(cl_data_file):
+    class_list = cl_data_file.keys()
+    cl_sparsity = []
+    for cl in class_list:
+        cl_sparsity.append(np.mean([np.sum(x != 0) for x in cl_data_file[cl]]))
+
+    return np.mean(cl_sparsity)
+
+
+def normal_logprob(z, mu, sigma):
+    log_z = -0.5 * torch.log(2 * pi * sigma)
+    z_diff = z - mu
+    return log_z - 0.5 * z_diff.pow(2) / sigma.pow(2)
 
 
 def standard_normal_logprob(z):
@@ -13,7 +55,6 @@ def standard_normal_logprob(z):
 
 
 def set_cnf_options(args, model):
-
     def _set(module):
         if isinstance(module, layers.CNF):
             # Set training settings
@@ -40,7 +81,6 @@ def set_cnf_options(args, model):
 
 
 def override_divergence_fn(model, divergence_fn):
-
     def _set(module):
         if isinstance(module, layers.ODEfunc):
             if divergence_fn == "brute_force":
@@ -52,7 +92,6 @@ def override_divergence_fn(model, divergence_fn):
 
 
 def count_nfe(model):
-
     class AccNumEvals(object):
 
         def __init__(self):
@@ -72,7 +111,6 @@ def count_parameters(model):
 
 
 def count_total_time(model):
-
     class Accumulator(object):
 
         def __init__(self):
@@ -106,7 +144,6 @@ def add_spectral_norm(model, logger=None):
 
 
 def spectral_norm_power_iteration(model, n_power_iterations=1):
-
     def recursive_power_iteration(module):
         if hasattr(module, spectral_norm.POWER_ITERATION_FN):
             getattr(module, spectral_norm.POWER_ITERATION_FN)(n_power_iterations)
@@ -158,7 +195,6 @@ def get_regularization(model, regularization_coeffs):
 
 
 def build_model_tabular(args, dims, regularization_fns=None):
-
     hidden_dims = tuple(map(int, args.dims.split("-")))
 
     def build_cnf():
@@ -201,7 +237,6 @@ def build_model_tabular(args, dims, regularization_fns=None):
 
 
 def build_conditional_cnf(args, dims, context_dim, regularization_fns=None):
-
     hidden_dims = tuple(map(int, args.dims.split("-")))
 
     def build_cnf():

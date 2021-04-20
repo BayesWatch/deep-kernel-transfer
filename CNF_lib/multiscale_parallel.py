@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
+
 import CNF_lib.layers as layers
 from CNF_lib.layers.odefunc import ODEnet
-import numpy as np
 
 
 class MultiscaleParallelCNF(nn.Module):
@@ -22,13 +22,13 @@ class MultiscaleParallelCNF(nn.Module):
     """
 
     def __init__(
-        self,
-        input_size,
-        n_scale=float('inf'),
-        n_blocks=1,
-        intermediate_dims=(32,),
-        alpha=-1,
-        time_length=1.,
+            self,
+            input_size,
+            n_scale=float('inf'),
+            n_blocks=1,
+            intermediate_dims=(32,),
+            alpha=-1,
+            time_length=1.,
     ):
         super(MultiscaleParallelCNF, self).__init__()
         print(input_size)
@@ -111,7 +111,6 @@ class MultiscaleParallelCNF(nn.Module):
         return z if logpz is None else (z, _logpz)
 
 
-
 class ParallelSumModules(nn.Module):
     def __init__(self, models):
         super(ParallelSumModules, self).__init__()
@@ -125,20 +124,20 @@ class ParallelSumModules(nn.Module):
 
 class ParallelCNFLayers(layers.SequentialFlow):
     def __init__(
-        self,
-        initial_size,
-        idims=(32,),
-        scales=4,
-        init_layer=None,
-        n_blocks=1,
-        time_length=1.,
+            self,
+            initial_size,
+            idims=(32,),
+            scales=4,
+            init_layer=None,
+            n_blocks=1,
+            time_length=1.,
     ):
         strides = tuple([1] + [1 for _ in idims])
         chain = []
         if init_layer is not None:
             chain.append(init_layer)
 
-        get_size = lambda s: (initial_size[0] * (4**s), initial_size[1] // (2**s), initial_size[2] // (2**s))
+        get_size = lambda s: (initial_size[0] * (4 ** s), initial_size[1] // (2 ** s), initial_size[2] // (2 ** s))
 
         def _make_odefunc():
             nets = [ODEnet(idims, get_size(scale), strides, True, layer_type="concat", num_squeeze=scale)

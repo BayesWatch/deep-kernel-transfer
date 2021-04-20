@@ -1,11 +1,12 @@
 import copy
+
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from . import diffeq_layers
 from . import cond_layers
+from . import diffeq_layers
 from .squeeze import squeeze, unsqueeze
 
 __all__ = ["ODEnet", "ODEnetC", "AutoencoderDiffEqNet", "ODEfunc", "ODEfuncC", "AutoencoderODEfunc"]
@@ -87,7 +88,7 @@ NONLINEARITIES = {
     "softplus": nn.Softplus(),
     "elu": nn.ELU(),
     "swish": Swish(),
-    "square": Lambda(lambda x: x**2),
+    "square": Lambda(lambda x: x ** 2),
     "identity": Lambda(lambda x: x),
 }
 
@@ -98,7 +99,7 @@ class ODEnet(nn.Module):
     """
 
     def __init__(
-        self, hidden_dims, input_shape, strides, conv, layer_type="concat", nonlinearity="softplus", num_squeeze=0
+            self, hidden_dims, input_shape, strides, conv, layer_type="concat", nonlinearity="softplus", num_squeeze=0
     ):
         super(ODEnet, self).__init__()
         self.num_squeeze = num_squeeze

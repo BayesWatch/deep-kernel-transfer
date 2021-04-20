@@ -82,7 +82,7 @@ class ConcatSquashLinear(nn.Module):
 
     def forward(self, t, x):
         return self._layer(x) * torch.sigmoid(self._hyper_gate(t.view(1, 1))) \
-            + self._hyper_bias(t.view(1, 1))
+               + self._hyper_bias(t.view(1, 1))
 
 
 class HyperConv2d(nn.Module):
@@ -190,7 +190,7 @@ class ConcatSquashConv2d(nn.Module):
 
     def forward(self, t, x):
         return self._layer(x) * torch.sigmoid(self._hyper_gate(t.view(1, 1))).view(1, -1, 1, 1) \
-            + self._hyper_bias(t.view(1, 1)).view(1, -1, 1, 1)
+               + self._hyper_bias(t.view(1, 1)).view(1, -1, 1, 1)
 
 
 class ConcatCoordConv2d(nn.Module):
@@ -271,8 +271,8 @@ class BlendLinear(nn.Module):
 
 class BlendConv2d(nn.Module):
     def __init__(
-        self, dim_in, dim_out, ksize=3, stride=1, padding=0, dilation=1, groups=1, bias=True, transpose=False,
-        **unused_kwargs
+            self, dim_in, dim_out, ksize=3, stride=1, padding=0, dilation=1, groups=1, bias=True, transpose=False,
+            **unused_kwargs
     ):
         super(BlendConv2d, self).__init__()
         module = nn.ConvTranspose2d if transpose else nn.Conv2d

@@ -4,7 +4,7 @@ import os
 
 import numpy as np
 
-import backbone
+from models import backbone
 
 NONLINEARITIES = ["tanh", "relu", "softplus", "elu", "swish", "square", "identity"]
 SOLVERS = ["dopri5", "bdf", "rk4", "midpoint", 'adams', 'explicit_adams', 'fixed_adams']
@@ -32,8 +32,8 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
-def parse_args(script):
-    parser = argparse.ArgumentParser(description='few-shot script %s' % (script))
+def parse_args():
+    parser = argparse.ArgumentParser(description='few-shot script classification')
     parser.add_argument('--seed', default=0, type=int, help='Seed for Numpy and pyTorch. Default: 0 (None)')
     parser.add_argument('--dataset', default='CUB', help='CUB/miniImagenet/cross/omniglot/cross_char')
     parser.add_argument('--model', default='Conv4',
@@ -48,42 +48,41 @@ def parse_args(script):
                         help='number of labeled data in each class, same as n_support')  # baseline and baseline++ only use this parameter in finetuning
     parser.add_argument('--train_aug', action='store_true',
                         help='perform data augmentation or not during training ')  # still required for save_features.py and test.py to find the model path correctly
-    parser.add_argument('--kernel-type', type=str, default='rbf', choices=['rbf','bncossim', 'matern','poli1','poli2','cossim','nn'])
+    parser.add_argument('--kernel-type', type=str, default='rbf',
+                        choices=['rbf', 'bncossim', 'matern', 'poli1', 'poli2', 'cossim', 'nn'])
     parser.add_argument('--save_dir', type=str, default='./save/classification')
-    if script == 'train':
-        parser.add_argument('--num_classes', default=200, type=int,
-                            help='total number of classes in softmax, only used in baseline')  # make it larger than the maximum label value in base class
-        parser.add_argument('--save_freq', default=50, type=int, help='Save frequency')
-        parser.add_argument('--start_epoch', default=0, type=int, help='Starting epoch')
-        parser.add_argument('--stop_epoch', default=-1, type=int,
-                            help='Stopping epoch')  # for meta-learning methods, each epoch contains 100 episodes. The default epoch number is dataset dependent. See train.py
-        parser.add_argument('--resume', action='store_true',
-                            help='continue from previous trained model with largest epoch')
-        parser.add_argument('--warmup', action='store_true',
-                            help='continue from baseline, neglected if resume is true')  # never used in the paper
-    elif script == 'save_features':
-        parser.add_argument('--split', default='novel',
-                            help='base/val/novel')  # default novel, but you can also test base/val class accuracy if you want
-        parser.add_argument('--save_iter', default=-1, type=int,
-                            help='save feature from the model trained in x epoch, use the best model if x is -1')
-    elif script == 'test':
-        parser.add_argument('--split', default='novel',
-                            help='base/val/novel')  # default novel, but you can also test base/val class accuracy if you want
-        parser.add_argument('--save_iter', default=-1, type=int,
-                            help='saved feature from the model trained in x epoch, use the best model if x is -1')
-        parser.add_argument('--adaptation', action='store_true', help='further adaptation in test time or not')
-        parser.add_argument('--repeat', default=5, type=int,
-                            help='Repeat the test N times with different seeds and take the mean. The seeds range is [seed, seed+repeat]')
-    else:
-        raise ValueError('Unknown script')
+    parser.add_argument('--neptune', action="store_true", help="whether to use neptune logging.")
+
+    parser.add_argument('--num_classes', default=200, type=int,
+                        help='total number of classes in softmax, only used in baseline')  # make it larger than the maximum label value in base class
+    parser.add_argument('--save_freq', default=50, type=int, help='Save frequency')
+    parser.add_argument('--start_epoch', default=0, type=int, help='Starting epoch')
+    parser.add_argument('--stop_epoch', default=-1, type=int,
+                        help='Stopping epoch')  # for meta-learning methods, each epoch contains 100 episodes. The default epoch number is dataset dependent. See train.py
+    parser.add_argument('--resume', action='store_true',
+                        help='continue from previous trained model with largest epoch')
+    parser.add_argument('--warmup', action='store_true',
+                        help='continue from baseline, neglected if resume is true')  # never used in the paper
+
+    # save features and test
+    parser.add_argument('--split', default='novel',
+                        help='base/val/novel')  # default novel, but you can also test base/val class accuracy if you want
+    parser.add_argument('--save_iter', default=-1, type=int,
+                        help='saved feature from the model trained in x epoch, use the best model if x is -1')
+    # only test
+    parser.add_argument('--test', action="store_true", help="perform evaluation")
+    parser.add_argument('--adaptation', action='store_true', help='further adaptation in test time or not')
+    parser.add_argument('--repeat', default=5, type=int,
+                        help='Repeat the test N times with different seeds and take the mean. The seeds range is [seed, seed+repeat]')
 
     return parser.parse_args()
 
 
-def parse_args_regression(script):
-    parser = argparse.ArgumentParser(description='few-shot script %s' % (script))
+def parse_args_regression():
+    parser = argparse.ArgumentParser(description='few-shot script regression')
+
     parser.add_argument('--seed', default=0, type=int, help='Seed for Numpy and pyTorch. Default: 0 (None)')
-    parser.add_argument('--model', default='Conv3', help='model: Conv{3} / MLP{2}')
+    parser.add_argument('--model', default='Conv3', choices=["Conv3", "MLP2"], help='model: Conv{3} / MLP{2}')
     parser.add_argument('--method', default='DKT', help='DKT / transfer')
     parser.add_argument('--dataset', default='QMUL', help='QMUL / sines')
     parser.add_argument('--spectral', action='store_true', help='Use a spectral covariance kernel function')
@@ -97,40 +96,23 @@ def parse_args_regression(script):
                         help='Different phases per each example')
     parser.add_argument('--noise', default=False, type=str2bool,
                         help='Different phases per each example')
-    parser.add_argument('--kernel_type', type=str, default='nn', choices=['rbf','bncossim', 'matern','poli1','poli2','cossim','nn'])
+    parser.add_argument('--kernel_type', type=str, default='rbf',
+                        choices=['rbf', 'bncossim', 'matern', 'poli1', 'poli2', 'cossim', 'nn'])
     parser.add_argument('--save_dir', type=str, default='./save/regression')
-    if script == 'train_regression':
-        parser.add_argument('--start_epoch', default=0, type=int, help='Starting epoch')
-        parser.add_argument('--stop_epoch', default=100, type=int,
-                            help='Stopping epoch')  # for meta-learning methods, each epoch contains 100 episodes. The default epoch number is dataset dependent. See train.py
-        parser.add_argument('--resume', action='store_true',
-                            help='continue from previous trained model with largest epoch')
-    elif script == 'test_regression':
-        parser.add_argument('--n_support', default=5, type=int,
-                            help='Number of points on trajectory to be given as support points')
-        parser.add_argument('--n_test_epochs', default=10, type=int, help='How many test people?')
-    return parser.parse_args()
+    parser.add_argument('--num_tasks', type=int, default=1, help="the dimension of the target.")
+    parser.add_argument('--multi_type', type=int, choices=[2,3], help="type of nn multi-kernel, used if num-tasks>1 "
+                                                                      "and kernel type == n")
+    parser.add_argument('--method_lr', type=float, default=0.001)
+    parser.add_argument('--feature_extractor_lr', type=float, default=0.001)
+    parser.add_argument('--cnf_lr', type=float, default=0.001)
+    parser.add_argument('--all_lr', type=float, help="if not None, sets up the same given learning rate for all "
+                                                     "the parameters.")
 
+    # neptune logging
+    parser.add_argument('--neptune', action="store_true", help="whether to use neptune logging.")
+    parser.add_argument('--flow', action="store_true", help="whether to use flow approach.")
 
-def parse_args_regressionFlow(script):
-    parser = argparse.ArgumentParser(description='few-shot script %s' % (script))
-    parser.add_argument('--seed', default=0, type=int, help='Seed for Numpy and pyTorch. Default: 0 (None)')
-    parser.add_argument('--model', default='Conv3', help='model: Conv{3} / MLP{2}')
-    parser.add_argument('--method', default='DKT', help='DKT / transfer')
-    parser.add_argument('--dataset', default='QMUL', help='QMUL / sines')
-    parser.add_argument('--spectral', action='store_true', help='Use a spectral covariance kernel function')
-    parser.add_argument('--update_batch_size', default=5, type=int,
-                        help='Number of examples used for inner gradient update (K for K-shot learning).')
-    parser.add_argument('--meta_batch_size', default=5, type=int, help='Number of tasks sampled per meta-update')
-    parser.add_argument('--output_dim', default=1, type=int, help='Input/output dim for generated dataset')
-    parser.add_argument('--multidimensional_amp', default=False, type=str2bool,
-                        help='Different amplitudes per each example')
-    parser.add_argument('--multidimensional_phase', default=False, type=str2bool,
-                        help='Different phases per each example')
-    parser.add_argument('--kernel_type', type=str, default='rbf', choices=['rbf','bncossim', 'matern','poli1','poli2','cossim','nn'])
-    parser.add_argument('--save_dir', type=str, default='./save/regression')
-
-    parser.add_argument("--use_conditional",  default=False, type=str2bool,
+    parser.add_argument("--use_conditional", default=False, type=str2bool,
                         help='If CNF should be conditional')
 
     parser.add_argument("--context_dim", type=int, default=16, help='Dimensionality of the context.')
@@ -161,8 +143,8 @@ def parse_args_regressionFlow(script):
     parser.add_argument('--batch_norm', type=eval, default=False, choices=[True, False])
     parser.add_argument('--bn_lag', type=float, default=0)
 
-    parser.add_argument('--lr', type=float, default=1e-3)
-    parser.add_argument('--weight_decay', type=float, default=1e-5)
+    # parser.add_argument('--lr', type=float, default=1e-3)
+    # parser.add_argument('--weight_decay', type=float, default=1e-5)
 
     # Track quantities
     parser.add_argument('--l1int', type=float, default=None, help="int_t ||f||_1")
@@ -172,16 +154,16 @@ def parse_args_regressionFlow(script):
     parser.add_argument('--JdiagFrobint', type=float, default=None, help="int_t ||df_i/dx_i||_F")
     parser.add_argument('--JoffdiagFrobint', type=float, default=None, help="int_t ||df/dx - df_i/dx_i||_F")
 
-    if script == 'train_regression':
-        parser.add_argument('--start_epoch', default=0, type=int, help='Starting epoch')
-        parser.add_argument('--stop_epoch', default=100, type=int,
-                            help='Stopping epoch')  # for meta-learning methods, each epoch contains 100 episodes. The default epoch number is dataset dependent. See train.py
-        parser.add_argument('--resume', action='store_true',
-                            help='continue from previous trained model with largest epoch')
-    elif script == 'test_regression':
-        parser.add_argument('--n_support', default=5, type=int,
-                            help='Number of points on trajectory to be given as support points')
-        parser.add_argument('--n_test_epochs', default=10, type=int, help='How many test people?')
+    # train
+    parser.add_argument('--start_epoch', default=0, type=int, help='Starting epoch')
+    parser.add_argument('--stop_epoch', default=100, type=int,
+                        help='Stopping epoch')  # for meta-learning methods, each epoch contains 100 episodes. The default epoch number is dataset dependent. See train.py
+
+    # test
+    parser.add_argument('--test', action="store_true", help="whether to perform only evaluation.")
+    parser.add_argument('--n_support', default=5, type=int,
+                        help='Number of points on trajectory to be given as support points')
+    parser.add_argument('--n_test_epochs', default=10, type=int, help='How many test people?')
     return parser.parse_args()
 
 

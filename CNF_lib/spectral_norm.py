@@ -2,6 +2,7 @@
 Spectral Normalization from https://arxiv.org/abs/1802.05957
 """
 import types
+
 import torch
 from torch.nn.functional import normalize
 
@@ -27,7 +28,7 @@ class SpectralNorm(object):
         weight_mat = weight
         if self.dim != 0:
             # permute dim to front
-            weight_mat = weight_mat.permute(self.dim, * [d for d in range(weight_mat.dim()) if d != self.dim])
+            weight_mat = weight_mat.permute(self.dim, *[d for d in range(weight_mat.dim()) if d != self.dim])
         height = weight_mat.size(0)
         weight_mat = weight_mat.reshape(height, -1)
         with torch.no_grad():

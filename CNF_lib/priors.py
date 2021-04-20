@@ -1,4 +1,5 @@
 import math
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -140,7 +141,7 @@ class Normal(nn.Module):
 
         c = self.normalization.type_as(sample_mu.data)
         nll = logsigma.mul(-2).exp() * (sample_mu - mu).pow(2) \
-            + torch.exp(sample_logsigma.mul(2) - logsigma.mul(2)) + 2 * logsigma + c
+              + torch.exp(sample_logsigma.mul(2) - logsigma.mul(2)) + 2 * logsigma + c
         return nll.mul(0.5)
 
     def kld(self, params):

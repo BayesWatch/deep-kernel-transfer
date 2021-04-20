@@ -1,8 +1,9 @@
+import numpy as np
 import torch
 import torch.nn as nn
+
 import CNF_lib.layers as layers
 from CNF_lib.layers.odefunc import ODEnet
-import numpy as np
 
 
 class ODENVP(nn.Module):
@@ -17,15 +18,15 @@ class ODENVP(nn.Module):
     """
 
     def __init__(
-        self,
-        input_size,
-        n_scale=float('inf'),
-        n_blocks=2,
-        intermediate_dims=(32,),
-        nonlinearity="softplus",
-        squash_input=True,
-        alpha=0.05,
-        cnf_kwargs=None,
+            self,
+            input_size,
+            n_scale=float('inf'),
+            n_blocks=2,
+            intermediate_dims=(32,),
+            nonlinearity="softplus",
+            squash_input=True,
+            alpha=0.05,
+            cnf_kwargs=None,
     ):
         super(ODENVP, self).__init__()
         self.n_scale = min(n_scale, self._calc_n_scale(input_size))
@@ -137,14 +138,14 @@ class ODENVP(nn.Module):
 
 class StackedCNFLayers(layers.SequentialFlow):
     def __init__(
-        self,
-        initial_size,
-        idims=(32,),
-        nonlinearity="softplus",
-        squeeze=True,
-        init_layer=None,
-        n_blocks=1,
-        cnf_kwargs={},
+            self,
+            initial_size,
+            idims=(32,),
+            nonlinearity="softplus",
+            squeeze=True,
+            init_layer=None,
+            n_blocks=1,
+            cnf_kwargs={},
     ):
         strides = tuple([1] + [1 for _ in idims])
         chain = []

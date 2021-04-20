@@ -34,7 +34,7 @@ class RegularizedODEfunc(nn.Module):
 
 def _batch_root_mean_squared(tensor):
     tensor = tensor.view(tensor.shape[0], -1)
-    return torch.mean(torch.norm(tensor, p=2, dim=1) / tensor.shape[1]**0.5)
+    return torch.mean(torch.norm(tensor, p=2, dim=1) / tensor.shape[1] ** 0.5)
 
 
 def l1_regularzation_fn(x, logp, dx, dlogp, unused_context):
@@ -82,7 +82,7 @@ def jacobian_offdiag_frobenius_regularization_fn(x, logp, dx, dlogp, context):
         jac = _get_minibatch_jacobian(dx, x)
         context.jac = jac
     diagonal = jac.view(jac.shape[0], -1)[:, ::jac.shape[1]]  # assumes jac is minibatch square, ie. (N, M, M).
-    ss_offdiag = torch.sum(jac.view(jac.shape[0], -1)**2, dim=1) - torch.sum(diagonal**2, dim=1)
+    ss_offdiag = torch.sum(jac.view(jac.shape[0], -1) ** 2, dim=1) - torch.sum(diagonal ** 2, dim=1)
     ms_offdiag = ss_offdiag / (diagonal.shape[1] * (diagonal.shape[1] - 1))
     return torch.mean(ms_offdiag)
 
