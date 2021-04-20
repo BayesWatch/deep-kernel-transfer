@@ -115,13 +115,10 @@ class MultiNNKernel(gpytorch.kernels.Kernel):
             out = torch.zeros((n * self.num_tasks, m * self.num_tasks), device=x1.get_device())
             for i in range(self.num_tasks):
                 for j in range(self.num_tasks):
-                    # print(x1.shape, x2.shape)
+
                     z1 = self.kernels[i].model(x1)
                     z2 = self.kernels[j].model(x2)
 
-                    # print(z1.shape, z2.shape)
-                    # print((i*n), n, (j*m), m)
-                    #out[(i * n):(i + 1) * n, (j * m):(j + 1) * m] = torch.matmul(z1, z2.T)
                     out[i:n*self.num_tasks:self.num_tasks, j:m*self.num_tasks:self.num_tasks] = torch.matmul(z1, z2.T)
             if diag:
                 return torch.diag(out)

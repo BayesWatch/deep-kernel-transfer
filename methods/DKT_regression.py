@@ -41,7 +41,8 @@ def get_transforms(model, use_context):
 
 
 class DKT(nn.Module):
-    def __init__(self, backbone, device,  num_tasks=1, config=None, dataset='QMUL', cnf=None, use_conditional=False):
+    def __init__(self, backbone, device, num_tasks=1, config=None, dataset='QMUL', cnf=None, use_conditional=False,
+                 multi_type=2):
         super(DKT, self).__init__()
         ## GP parameters
         self.feature_extractor = backbone
@@ -49,25 +50,28 @@ class DKT(nn.Module):
         self.num_tasks = num_tasks
         self.config = config
         self.dataset = dataset
-        self.get_model_likelihood_mll()  # Init model, likelihood, and mll
         self.cnf = cnf
         self.use_conditional = use_conditional
+        self.multi_type = multi_type
         if self.cnf is not None:
             self.is_flow = True
         else:
             self.is_flow = False
 
+        self.get_model_likelihood_mll()  # Init model, likelihood, and mll
+
+
     def get_model_likelihood_mll(self, train_x=None, train_y=None):
         if self.dataset == 'QMUL':
-            if (train_x is None): train_x = torch.ones(19, 2916).to(self.device)
-            if (train_y is None): train_y = torch.ones(19).to(self.device)
+            if train_x is None: train_x = torch.ones(19, 2916).to(self.device)
+            if train_y is None: train_y = torch.ones(19).to(self.device)
         else:
             if self.num_tasks == 1:
-                if (train_x is None): train_x = torch.ones(10, 1).to(self.device)
-                if (train_y is None): train_y = torch.ones(10).to(self.device)
+                if train_x is None: train_x = torch.ones(10, 1).to(self.device)
+                if train_y is None: train_y = torch.ones(10).to(self.device)
             else:
-                if (train_x is None): train_x = torch.ones(10, self.num_tasks).to(self.device)
-                if (train_y is None): train_y = torch.ones(10, self.num_tasks).to(self.device)
+                if train_x is None: train_x = torch.ones(10, self.num_tasks).to(self.device)
+                if train_y is None: train_y = torch.ones(10, self.num_tasks).to(self.device)
 
         if self.num_tasks == 1:
             likelihood = gpytorch.likelihoods.GaussianLikelihood()
@@ -75,8 +79,10 @@ class DKT(nn.Module):
                                  train_y=train_y, likelihood=likelihood, kernel=self.config.kernel_type)
         else:
             likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=self.num_tasks)
-            model = MultitaskExactGPLayer(dataset=self.dataset, config=self.config, train_x=train_x, train_y=train_y, likelihood=likelihood,
-                                          kernel=self.config.kernel_type, num_tasks=self.num_tasks)
+            model = MultitaskExactGPLayer(dataset=self.dataset, config=self.config, train_x=train_x, train_y=train_y,
+                                          likelihood=likelihood,
+                                          kernel=self.config.kernel_type, num_tasks=self.num_tasks,
+                                          multi_type=self.multi_type)
         self.model = model.to(self.device)
         self.likelihood = likelihood.to(self.device)
         self.mll = gpytorch.mlls.ExactMarginalLogLikelihood(self.likelihood, self.model).to(self.device)
@@ -90,7 +96,7 @@ class DKT(nn.Module):
     def set_forward_loss(self, x):
         pass
 
-    def train_loop(self, epoch, optimizer, params, results_logger, scheduler):
+    def train_loop(self, epoch, optimizer, params, results_logger):
         # print("NUM KERNEL PARAMS {}".format(sum([p.numel() for p in self.model.parameters() if p.requires_grad])))
         # print("NUM TRANSFORM PARAMS {}".format(sum([p.numel() for p in self.feature_extractor.parameters() if p.requires_grad])))
         if self.dataset != "sines":
@@ -126,11 +132,11 @@ class DKT(nn.Module):
                 loss = loss + torch.mean(delta_log_py)
             loss.backward()
             optimizer.step()
-            scheduler.step()
+
 
             mse, _ = self.compute_mse(labels, predictions, z)
 
-            if (epoch % 10 == 0):
+            if epoch % 10 == 0:
                 print('[%d] - Loss: %.3f  MSE: %.3f noise: %.3f' % (
                     epoch, loss.item(), mse.item(),
                     self.model.likelihood.noise.item()
@@ -194,7 +200,7 @@ class DKT(nn.Module):
             z_query = self.feature_extractor(x_all[n]).detach()
             pred = self.likelihood(self.model(z_query))
             if self.is_flow:
-                delta_log_py, _,  y = self.apply_flow(y_all[n], z_query)
+                delta_log_py, _, y = self.apply_flow(y_all[n], z_query)
                 log_py = normal_logprob(y.squeeze(), pred.mean, pred.stddev)
                 NLL = -1.0 * torch.mean(log_py - delta_log_py.squeeze())
 
@@ -205,9 +211,8 @@ class DKT(nn.Module):
             mse, new_means = self.compute_mse(y_all[n], pred, z_query)
             lower, upper = pred.confidence_region()  # 2 standard deviations above and below the mean
 
-        #TODO: czy dla flowa nie powinnismy zwracac new_means?
+        # TODO: czy dla flowa nie powinnismy zwracac new_means?
         return mse, NLL, pred.mean, lower, upper, x_all[n], y_all[n]
-
 
     def get_support_query_qmul(self, n_support):
         inputs, targets = get_batch(test_people)
@@ -249,7 +254,7 @@ class DKT(nn.Module):
         nn_state_dict = self.feature_extractor.state_dict()
 
         state_dicts = {'gp': gp_state_dict, 'likelihood': likelihood_state_dict,
-                    'net': nn_state_dict}
+                       'net': nn_state_dict}
         if self.is_flow:
             cnf_dict = self.cnf.state_dict()
             state_dicts['cnf'] = cnf_dict
@@ -270,16 +275,16 @@ class ExactGPLayer(gpytorch.models.ExactGP):
         self.mean_module = gpytorch.means.ConstantMean()
 
         ## RBF kernel
-        if (kernel == 'rbf' or kernel == 'RBF'):
+        if kernel == 'rbf' or kernel == 'RBF':
             self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
         ## Spectral kernel
-        elif (kernel == 'spectral'):
+        elif kernel == 'spectral':
             if self.dataset == "sines":
                 ard_num_dims = 1
             else:
                 ard_num_dims = 2916
             self.covar_module = gpytorch.kernels.SpectralMixtureKernel(num_mixtures=4, ard_num_dims=ard_num_dims)
-        elif (kernel == "nn"):
+        elif kernel == "nn":
             self.kernel = NNKernel(input_dim=config.nn_config["input_dim"],
                                    output_dim=config.nn_config["output_dim"],
                                    num_layers=config.nn_config["num_layers"],
@@ -296,27 +301,32 @@ class ExactGPLayer(gpytorch.models.ExactGP):
 
 
 class MultitaskExactGPLayer(gpytorch.models.ExactGP):
-    def __init__(self, dataset, config, train_x, train_y, likelihood, kernel='nn', num_tasks=2):
+    def __init__(self, dataset, config, train_x, train_y, likelihood, kernel='nn', num_tasks=2, multi_type=2):
         super(MultitaskExactGPLayer, self).__init__(train_x, train_y, likelihood)
         self.mean_module = gpytorch.means.MultitaskMean(
             gpytorch.means.ConstantMean(), num_tasks=num_tasks
         )
         self.dataset = dataset
-        if (kernel == "nn"):
-            kernels = []
-            for i in range(num_tasks):
-                kernels.append(NNKernel(input_dim=config.nn_config["input_dim"],
-                                        output_dim=config.nn_config["output_dim"],
-                                        num_layers=config.nn_config["num_layers"],
-                                        hidden_dim=config.nn_config["hidden_dim"]))
-            self.covar_module = MultiNNKernel(num_tasks, kernels)
-            # kernels = NNKernel(input_dim=config.nn_config["input_dim"],
-            #                    output_dim=config.nn_config["output_dim"],
-            #                    num_layers=config.nn_config["num_layers"],
-            #                    hidden_dim=config.nn_config["hidden_dim"])
-            #
-            # self.covar_module = gpytorch.kernels.MultitaskKernel(kernels, num_tasks)
+        if kernel == "nn":
+            if multi_type == 2:
+                kernels = NNKernel(input_dim=config.nn_config["input_dim"],
+                                   output_dim=config.nn_config["output_dim"],
+                                   num_layers=config.nn_config["num_layers"],
+                                   hidden_dim=config.nn_config["hidden_dim"])
+
+                self.covar_module = gpytorch.kernels.MultitaskKernel(kernels, num_tasks)
+            elif multi_type == 3:
+                kernels = []
+                for i in range(num_tasks):
+                    kernels.append(NNKernel(input_dim=config.nn_config["input_dim"],
+                                            output_dim=config.nn_config["output_dim"],
+                                            num_layers=config.nn_config["num_layers"],
+                                            hidden_dim=config.nn_config["hidden_dim"]))
+                self.covar_module = MultiNNKernel(num_tasks, kernels)
+            else:
+                raise ValueError("Unsupported multi kernel type {}".format(multi_type))
         elif kernel == "rbf":
+
             self.covar_module = gpytorch.kernels.MultitaskKernel(
                 gpytorch.kernels.RBFKernel(), num_tasks=2, rank=1
             )

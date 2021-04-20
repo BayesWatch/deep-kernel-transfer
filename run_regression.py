@@ -32,19 +32,18 @@ def main():
     bb = setup_backbone(device, params)
     model = setup_model(bb, config, device, params)
     optimizer = setup_optimizer(model, params)
-    scheduler = StepLR(optimizer, step_size=1600, gamma=0.01)
 
     if params.test:
         test(model, params, save_path, results_logger)
     else:
-        train(model, optimizer, params, save_path, results_logger, scheduler)
+        train(model, optimizer, params, save_path, results_logger)
 
     results_logger.save()
 
 
-def train(model, optimizer, params, save_path, results_logger, scheduler):
+def train(model, optimizer, params, save_path, results_logger):
     for epoch in range(params.stop_epoch):
-        model.train_loop(epoch, optimizer, params, results_logger, scheduler)
+        model.train_loop(epoch, optimizer, params, results_logger)
     model.save_checkpoint(save_path)
 
 
@@ -112,12 +111,14 @@ def setup_model(bb, config, device, params):
         cnf = setup_flow(device, params)
         if params.method == 'DKT':
             model = DKT_flow(bb, device, num_tasks=params.num_tasks, config=config,
-                             dataset=params.dataset, cnf=cnf, use_conditional=params.use_conditional)
+                             dataset=params.dataset, cnf=cnf, use_conditional=params.use_conditional,
+                             multi_type=params.multi_type)
         else:
             raise ValueError('Unrecognised method')
     else:
         if params.method == 'DKT':
-            model = DKT_flow(bb, device, num_tasks=params.num_tasks, config=config, dataset=params.dataset, cnf=None)
+            model = DKT_flow(bb, device, num_tasks=params.num_tasks, config=config, dataset=params.dataset,
+                             cnf=None, multi_type=params.multi_type)
         elif params.method == 'transfer':
             model = FeatureTransfer(bb, device)
         else:

@@ -99,13 +99,14 @@ def parse_args_regression():
     parser.add_argument('--kernel_type', type=str, default='rbf',
                         choices=['rbf', 'bncossim', 'matern', 'poli1', 'poli2', 'cossim', 'nn'])
     parser.add_argument('--save_dir', type=str, default='./save/regression')
-    parser.add_argument('--num-tasks', type=int, default=1, help="the dimension of the target.")
+    parser.add_argument('--num_tasks', type=int, default=1, help="the dimension of the target.")
+    parser.add_argument('--multi_type', type=int, choices=[2,3], help="type of nn multi-kernel, used if num-tasks>1 "
+                                                                      "and kernel type == n")
+    parser.add_argument('--method_lr', type=float, default=0.001)
+    parser.add_argument('--feature_extractor_lr', type=float, default=0.001)
+    parser.add_argument('--cnf_lr', type=float, default=0.001)
 
-    parser.add_argument('--method-lr', type=float, default=0.001)
-    parser.add_argument('--feature-extractor-lr', type=float, default=0.001)
-    parser.add_argument('--cnf-lr', type=float, default=0.001)
-
-    parser.add_argument('--all-lr', type=float, help="if not None, sets up the same given learning rate for all "
+    parser.add_argument('--all_lr', type=float, help="if not None, sets up the same given learning rate for all "
                                                      "the parameters.")
 
     # neptune logging
