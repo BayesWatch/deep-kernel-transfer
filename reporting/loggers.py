@@ -1,5 +1,6 @@
 import neptune.new as neptune
 import numpy as np
+from copy import deepcopy
 
 PROJECT_NAME = "GMUM/deep-kernels"
 from neptune.new.types import File
@@ -13,14 +14,16 @@ class ResultsLogger:
         self.local_logger = LocalLogger()
 
     def log(self, key, value):
-        if self.params.neptune:
-            self.neptune_logger.log(key, value)
         self.local_logger.log(key, value)
+        if self.params.neptune:
+            self.neptune_logger.log(key, value)    
+        
 
     def log_dict(self, dict):
+        self.local_logger.log_dict(dict)
         if self.params.neptune:
             self.neptune_logger.log_dict(dict)
-        self.local_logger.log_dict(dict)
+        
 
     def get_array(self, key):
         return self.local_logger.get_array(key)
@@ -41,7 +44,8 @@ class NeptuneLogger:
         for key, value in dict.items():
             self.log(key, value)
 
-    def log(self, key, value):
+    def log(self, key, v):
+        value = deepcopy(v)
         if isinstance(value, np.ndarray) and len(value.shape) == 0:
             value = float(value)
         elif isinstance(value, np.ndarray) and len(value.shape) == 1:
@@ -65,6 +69,7 @@ class LocalLogger:
         if key not in self.results_dict:
             self.results_dict[key] = []
         self.results_dict[key].append(value)
+        
 
     def get_array(self, key):
         if key not in self.results_dict:
