@@ -39,7 +39,7 @@ class FeatureTransfer(nn.Module):
         else:
             batch, batch_labels, amp, phase = SinusoidalDataGenerator(params.update_batch_size * 2,
                                                                       params.meta_batch_size,
-                                                                      params.output_dim,
+                                                                      params.num_tasks,
                                                                       params.multidimensional_amp,
                                                                       params.multidimensional_phase,
                                                                       params.noise).generate()
@@ -69,7 +69,7 @@ class FeatureTransfer(nn.Module):
         else:
             batch, batch_labels, amp, phase = SinusoidalDataGenerator(params.update_batch_size * 2,
                                                                       params.meta_batch_size,
-                                                                      params.output_dim,
+                                                                      params.num_tasks,
                                                                       params.multidimensional_amp,
                                                                       params.multidimensional_phase,
                                                                       params.noise).generate()

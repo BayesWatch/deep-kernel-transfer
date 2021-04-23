@@ -67,10 +67,10 @@ class DKT(nn.Module):
             if train_y is None: train_y = torch.ones(19).to(self.device)
         else:
             if self.num_tasks == 1:
-                if train_x is None: train_x = torch.ones(10, 1).to(self.device)
+                if train_x is None: train_x = torch.ones(10, self.feature_extractor.output_dim).to(self.device)
                 if train_y is None: train_y = torch.ones(10).to(self.device)
             else:
-                if train_x is None: train_x = torch.ones(10, self.num_tasks).to(self.device)
+                if train_x is None: train_x = torch.ones(10, self.feature_extractor.output_dim).to(self.device)
                 if train_y is None: train_y = torch.ones(10, self.num_tasks).to(self.device)
 
         if self.num_tasks == 1:
@@ -104,7 +104,7 @@ class DKT(nn.Module):
         else:
             batch, batch_labels, amp, phase = SinusoidalDataGenerator(params.update_batch_size * 2,
                                                                       params.meta_batch_size,
-                                                                      params.output_dim,
+                                                                      params.num_tasks,
                                                                       params.multidimensional_amp,
                                                                       params.multidimensional_phase,
                                                                       params.noise).generate()
@@ -161,7 +161,8 @@ class DKT(nn.Module):
         return mse, new_means
 
     def apply_flow(self, labels, z):
-        labels = labels.unsqueeze(1)
+        if self.num_tasks == 1:
+            labels = labels.unsqueeze(1)
         if self.use_conditional:
             y, delta_log_py = self.cnf(labels, self.model.kernel.model(z),
                                        torch.zeros(labels.size(0), 1).to(labels))
@@ -230,7 +231,7 @@ class DKT(nn.Module):
     def get_support_query_sines(self, n_support, params):
         batch, batch_labels, amp, phase = SinusoidalDataGenerator(params.update_batch_size * 2,
                                                                   params.meta_batch_size,
-                                                                  params.output_dim,
+                                                                  params.num_tasks,
                                                                   params.multidimensional_amp,
                                                                   params.multidimensional_phase,
                                                                   params.noise).generate()
