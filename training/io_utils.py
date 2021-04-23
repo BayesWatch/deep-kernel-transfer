@@ -97,7 +97,7 @@ def parse_args_regression():
     parser.add_argument('--noise', default=False, type=str2bool,
                         help='Different phases per each example')
     parser.add_argument('--kernel_type', type=str, default='rbf',
-                        choices=['rbf', 'bncossim', 'matern', 'poli1', 'poli2', 'cossim', 'nn'])
+                        choices=['rbf', 'linear', 'bncossim', 'matern','spectral', 'poli1', 'poli2', 'cossim', 'nn'])
     parser.add_argument('--save_dir', type=str, default='./save/regression')
     parser.add_argument('--num_tasks', type=int, default=1, help="the dimension of the target.")
     parser.add_argument('--multi_type', type=int, choices=[2,3], help="type of nn multi-kernel, used if num-tasks>1 "

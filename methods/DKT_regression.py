@@ -7,7 +7,7 @@ import torch.nn as nn
 
 from data.data_generator import SinusoidalDataGenerator
 from data.qmul_loader import get_batch, train_people, test_people
-from models.kernels import NNKernel, MultiNNKernel
+from models.kernels import NNKernel, MultiNNKernel, NNKernelNoInner
 from training.utils import normal_logprob
 
 
@@ -274,7 +274,7 @@ class ExactGPLayer(gpytorch.models.ExactGP):
     def __init__(self, dataset, config, train_x, train_y, likelihood, kernel='linear'):
         super(ExactGPLayer, self).__init__(train_x, train_y, likelihood)
         self.mean_module = gpytorch.means.ConstantMean()
-
+        self.dataset = dataset
         ## RBF kernel
         if kernel == 'rbf' or kernel == 'RBF':
             self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
@@ -286,10 +286,15 @@ class ExactGPLayer(gpytorch.models.ExactGP):
                 ard_num_dims = 2916
             self.covar_module = gpytorch.kernels.SpectralMixtureKernel(num_mixtures=4, ard_num_dims=ard_num_dims)
         elif kernel == "nn":
+            # self.kernel = NNKernelNoInner(input_dim=config.nn_config["input_dim"],
+            #                        num_layers=config.nn_config["num_layers"],
+            #                        hidden_dim=config.nn_config["hidden_dim"])
+
             self.kernel = NNKernel(input_dim=config.nn_config["input_dim"],
-                                   output_dim=config.nn_config["output_dim"],
-                                   num_layers=config.nn_config["num_layers"],
-                                   hidden_dim=config.nn_config["hidden_dim"])
+                               output_dim=config.nn_config["output_dim"],
+                               num_layers=config.nn_config["num_layers"],
+                               hidden_dim=config.nn_config["hidden_dim"])
+
             self.covar_module = self.kernel
         else:
             raise ValueError(
