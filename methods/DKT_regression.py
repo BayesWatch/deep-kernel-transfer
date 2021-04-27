@@ -7,7 +7,7 @@ import torch.nn as nn
 
 from data.data_generator import SinusoidalDataGenerator
 from data.qmul_loader import get_batch, train_people, test_people
-from models.kernels import NNKernel, MultiNNKernel, NNKernelNoInner
+from models.kernels import NNKernel, MultiNNKernel
 from training.utils import normal_logprob
 
 
@@ -60,7 +60,6 @@ class DKT(nn.Module):
 
         self.get_model_likelihood_mll()  # Init model, likelihood, and mll
 
-
     def get_model_likelihood_mll(self, train_x=None, train_y=None):
         if self.dataset == 'QMUL':
             if train_x is None: train_x = torch.ones(19, 2916).to(self.device)
@@ -99,9 +98,7 @@ class DKT(nn.Module):
     def train_loop(self, epoch, optimizer, params, results_logger):
         # print("NUM KERNEL PARAMS {}".format(sum([p.numel() for p in self.model.parameters() if p.requires_grad])))
         # print("NUM TRANSFORM PARAMS {}".format(sum([p.numel() for p in self.feature_extractor.parameters() if p.requires_grad])))
-        if self.dataset != "sines":
-            batch, batch_labels = get_batch(train_people)
-        else:
+        if self.dataset == "sines":
             batch, batch_labels, amp, phase = SinusoidalDataGenerator(params.update_batch_size * 2,
                                                                       params.meta_batch_size,
                                                                       params.num_tasks,
@@ -115,6 +112,10 @@ class DKT(nn.Module):
             else:
                 batch = torch.from_numpy(batch)
                 batch_labels = torch.from_numpy(batch_labels)
+        elif self.dataset == "nasdaq":
+            print(self.dataset)
+        else:
+            batch, batch_labels = get_batch(train_people)
 
         batch, batch_labels = batch.to(self.device), batch_labels.to(self.device)
         # print(batch.shape, batch_labels.shape)
@@ -133,7 +134,6 @@ class DKT(nn.Module):
                 loss = loss + torch.mean(delta_log_py)
             loss.backward()
             optimizer.step()
-
 
             mse, _ = self.compute_mse(labels, predictions, z)
 
@@ -173,10 +173,12 @@ class DKT(nn.Module):
         return delta_log_py, labels, y
 
     def test_loop(self, n_support, params=None):
-        if params is None or self.dataset != "sines":
-            x_all, x_support, y_all, y_support = self.get_support_query_qmul(n_support)
-        elif self.dataset == "sines":
+        if params is None or self.dataset == "sines":
             x_all, x_support, y_all, y_support = self.get_support_query_sines(n_support, params)
+        elif params is None or self.dataset == "nasdaq":
+            print(self.dataset)
+        elif params is None:
+            x_all, x_support, y_all, y_support = self.get_support_query_qmul(n_support)
         else:
             raise ValueError("unknown dataset")
 
@@ -283,6 +285,8 @@ class ExactGPLayer(gpytorch.models.ExactGP):
         elif kernel == 'spectral':
             if self.dataset == "sines":
                 ard_num_dims = 1
+            elif self.dataset == "nasdaq":
+                ard_num_dims = 1
             else:
                 ard_num_dims = 2916
             self.covar_module = gpytorch.kernels.SpectralMixtureKernel(num_mixtures=4, ard_num_dims=ard_num_dims)
@@ -292,9 +296,9 @@ class ExactGPLayer(gpytorch.models.ExactGP):
             #                        hidden_dim=config.nn_config["hidden_dim"])
 
             self.kernel = NNKernel(input_dim=config.nn_config["input_dim"],
-                               output_dim=config.nn_config["output_dim"],
-                               num_layers=config.nn_config["num_layers"],
-                               hidden_dim=config.nn_config["hidden_dim"])
+                                   output_dim=config.nn_config["output_dim"],
+                                   num_layers=config.nn_config["num_layers"],
+                                   hidden_dim=config.nn_config["hidden_dim"])
 
             self.covar_module = self.kernel
         else:

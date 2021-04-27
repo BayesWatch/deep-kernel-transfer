@@ -34,18 +34,19 @@ class FeatureTransfer(nn.Module):
         self.device = device
 
     def train_loop(self, epoch, optimizer, params, results_logger):
-        if params.dataset != "sines":
-            batch, batch_labels = get_batch(train_people)
-        else:
+        if params.dataset == "sines":
             batch, batch_labels, amp, phase = SinusoidalDataGenerator(params.update_batch_size * 2,
                                                                       params.meta_batch_size,
                                                                       params.num_tasks,
                                                                       params.multidimensional_amp,
                                                                       params.multidimensional_phase,
                                                                       params.noise).generate()
-
             batch = torch.from_numpy(batch)
             batch_labels = torch.from_numpy(batch_labels)
+        elif params.dataset == "nasdaq":
+            print(params.dataset)
+        else:
+            batch, batch_labels = get_batch(train_people)
 
         batch, batch_labels = batch.to(self.device), batch_labels.to(self.device)
 
@@ -64,9 +65,7 @@ class FeatureTransfer(nn.Module):
                 results_logger.log("loss", loss.item())
 
     def test_loop(self, n_support, optimizer, params):  # we need optimizer to take one gradient step
-        if params.dataset != "sines":
-            inputs, targets = get_batch(train_people)
-        else:
+        if params.dataset == "sines":
             batch, batch_labels, amp, phase = SinusoidalDataGenerator(params.update_batch_size * 2,
                                                                       params.meta_batch_size,
                                                                       params.num_tasks,
@@ -76,6 +75,10 @@ class FeatureTransfer(nn.Module):
 
             inputs = torch.from_numpy(batch)
             targets = torch.from_numpy(batch_labels)
+        elif params.dataset == "nasdaq":
+            print(params.dataset)
+        else:
+            inputs, targets = get_batch(train_people)
 
         inputs, targets = inputs.to(self.device), targets.to(self.device)
 
