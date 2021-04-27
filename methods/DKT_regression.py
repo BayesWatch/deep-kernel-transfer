@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from data.data_generator import SinusoidalDataGenerator
+from data.data_generator import SinusoidalDataGenerator, Nasdaq100padding
 from data.qmul_loader import get_batch, train_people, test_people
 from models.kernels import NNKernel, MultiNNKernel
 from training.utils import normal_logprob
@@ -64,7 +64,14 @@ class DKT(nn.Module):
         if self.dataset == 'QMUL':
             if train_x is None: train_x = torch.ones(19, 2916).to(self.device)
             if train_y is None: train_y = torch.ones(19).to(self.device)
-        else:
+        elif self.dataset == "sines":
+            if self.num_tasks == 1:
+                if train_x is None: train_x = torch.ones(10, self.feature_extractor.output_dim).to(self.device)
+                if train_y is None: train_y = torch.ones(10).to(self.device)
+            else:
+                if train_x is None: train_x = torch.ones(10, self.feature_extractor.output_dim).to(self.device)
+                if train_y is None: train_y = torch.ones(10, self.num_tasks).to(self.device)
+        elif self.dataset == "nasdaq":
             if self.num_tasks == 1:
                 if train_x is None: train_x = torch.ones(10, self.feature_extractor.output_dim).to(self.device)
                 if train_y is None: train_y = torch.ones(10).to(self.device)
@@ -113,7 +120,14 @@ class DKT(nn.Module):
                 batch = torch.from_numpy(batch)
                 batch_labels = torch.from_numpy(batch_labels)
         elif self.dataset == "nasdaq":
-            print(self.dataset)
+            nasdaq100padding = Nasdaq100padding(directory=self.config.data_dir['nasdaq'], normalize=True,
+                                                partition="train", window=params.update_batch_size * 2,
+                                                time_to_predict=params.meta_batch_size * 2)
+            data_loader = torch.utils.data.DataLoader(nasdaq100padding, batch_size=params.update_batch_size * 2,
+                                                      shuffle=True)
+            batch, batch_labels = next(iter(data_loader))
+            batch = batch.reshape(params.update_batch_size * 2, params.meta_batch_size * 2, 1)
+            batch_labels = batch_labels[:, :, 0].float()
         else:
             batch, batch_labels = get_batch(train_people)
 
@@ -173,10 +187,10 @@ class DKT(nn.Module):
         return delta_log_py, labels, y
 
     def test_loop(self, n_support, params=None):
-        if params is None or self.dataset == "sines":
+        if self.dataset == "sines":
             x_all, x_support, y_all, y_support = self.get_support_query_sines(n_support, params)
-        elif params is None or self.dataset == "nasdaq":
-            print(self.dataset)
+        elif self.dataset == "nasdaq":
+            x_all, x_support, y_all, y_support = self.get_support_query_nasdaq(n_support, params)
         elif params is None:
             x_all, x_support, y_all, y_support = self.get_support_query_qmul(n_support)
         else:
@@ -243,6 +257,31 @@ class DKT(nn.Module):
         else:
             inputs = torch.from_numpy(batch)
             targets = torch.from_numpy(batch_labels)
+        support_ind = list(np.random.choice(list(range(10)), replace=False, size=n_support))
+        query_ind = [i for i in range(10) if i not in support_ind]
+        x_all = inputs.to(self.device)
+        y_all = targets.to(self.device)
+        x_support = inputs[:, support_ind, :].to(self.device)
+        y_support = targets[:, support_ind].to(self.device)
+        return x_all, x_support, y_all, y_support
+
+    def get_support_query_nasdaq(self, n_support, params):
+        nasdaq100padding = Nasdaq100padding(directory=self.config.data_dir['nasdaq'], normalize=True, partition="test",
+                                            window=params.update_batch_size * 2,
+                                            time_to_predict=params.meta_batch_size * 2)
+        data_loader = torch.utils.data.DataLoader(nasdaq100padding, batch_size=params.update_batch_size * 2,
+                                                  shuffle=True)
+        batch, batch_labels = next(iter(data_loader))
+        inputs = batch.reshape(params.update_batch_size * 2, params.meta_batch_size * 2, 1)
+        targets = batch_labels[:, :, 0].float()
+
+        # if self.num_tasks == 1:
+        #     inputs = torch.from_numpy(batch)
+        #     targets = torch.from_numpy(batch_labels).view(batch_labels.shape[0], -1)
+        # else:
+        #     inputs = torch.from_numpy(batch)
+        #     targets = torch.from_numpy(batch_labels)
+
         support_ind = list(np.random.choice(list(range(10)), replace=False, size=n_support))
         query_ind = [i for i in range(10) if i not in support_ind]
         x_all = inputs.to(self.device)

@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from data.data_generator import SinusoidalDataGenerator
+from data.data_generator import SinusoidalDataGenerator, Nasdaq100padding
 from data.qmul_loader import get_batch, train_people, test_people
 
 
@@ -44,7 +44,14 @@ class FeatureTransfer(nn.Module):
             batch = torch.from_numpy(batch)
             batch_labels = torch.from_numpy(batch_labels)
         elif params.dataset == "nasdaq":
-            print(params.dataset)
+            nasdaq100padding = Nasdaq100padding(directory=self.config.data_dir['nasdaq'], normalize=True,
+                                                partition="train", window=params.update_batch_size * 2,
+                                                time_to_predict=params.meta_batch_size * 2)
+            data_loader = torch.utils.data.DataLoader(nasdaq100padding, batch_size=params.update_batch_size * 2,
+                                                      shuffle=True)
+            batch, batch_labels = next(iter(data_loader))
+            batch = batch.reshape(params.update_batch_size * 2, params.meta_batch_size * 2, 1)
+            batch_labels = batch_labels[:, :, 0]
         else:
             batch, batch_labels = get_batch(train_people)
 
@@ -76,7 +83,17 @@ class FeatureTransfer(nn.Module):
             inputs = torch.from_numpy(batch)
             targets = torch.from_numpy(batch_labels)
         elif params.dataset == "nasdaq":
-            print(params.dataset)
+            nasdaq100padding = Nasdaq100padding(directory=self.config.data_dir['nasdaq'], normalize=True,
+                                                partition="test", window=params.update_batch_size * 2,
+                                                time_to_predict=params.meta_batch_size * 2)
+            data_loader = torch.utils.data.DataLoader(nasdaq100padding, batch_size=params.update_batch_size * 2,
+                                                      shuffle=True)
+            batch, batch_labels = next(iter(data_loader))
+            batch = batch.reshape(params.update_batch_size * 2, params.meta_batch_size * 2, 1)
+            batch_labels = batch_labels[:, :, 0]
+
+            inputs = torch.from_numpy(batch)
+            targets = torch.from_numpy(batch_labels)
         else:
             inputs, targets = get_batch(train_people)
 
