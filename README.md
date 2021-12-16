@@ -43,7 +43,6 @@ DKT: code of our method
 
 Note: there is the possibility of using the [scikit](https://scikit-learn.org/stable/modules/gaussian_process.html) Laplace approximation at test time (classification only), setting `laplace=True` in `correct()`. However, this has not been investigated enough and it is not the method used in the paper.
 
-
 Experiments
 ============
 
@@ -78,6 +77,9 @@ python test_regression.py --method="DKT" --seed=1
 ```
 
 You can additionally specify the size of the support set with `--n_support` (which defaults to 5), and the number of test epochs with `--n_test_epochs` (which defaults to 10). 
+
+
+**Periodic functions.** The code for the periodic functions experiments is available in the [sines](./sines) folder. This needs some adjustment of the parameters at the code level to reproduce the in-range and out-of-range conditions (see the associated [README](./sines/README.md)).
 
 
 Classification
