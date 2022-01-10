@@ -7,9 +7,9 @@ The code needs some polishing and some hyperparameters must be set by changing v
 
 For the out-of-range condition you should also change the horizontal axis limit from `plt.ylim(-6.0, 6.0)` to `plt.ylim(-6.0, 11.0)`
 
-- The file [./train_DKT.py] contains the code for training and evaluating a DKT model.
-- The file [./train_FT.py] contains the code for training and evaluating the baseline Feature Transfer model.
-- The file [./train_MAML.py] contains the code for training the and evaluating the MAML model.
+- The file [train_DKT.py](./train_DKT.py) contains the code for training and evaluating a DKT model.
+- The file [train_FT.py](./train_FT.py) contains the code for training and evaluating the baseline Feature Transfer model.
+- The file [train_MAML.py](./train_MAML.py) contains the code for training the and evaluating the MAML model.
 
 
 Acknowledgments
