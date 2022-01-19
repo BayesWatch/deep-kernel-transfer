@@ -24,6 +24,8 @@ Requirements
 4. [GPyTorch](https://gpytorch.ai/) >= 0.3.5
 5. (optional) [TensorboardX](https://pypi.org/project/tensorboardX/) 
  
+**WARNING:** some users have experienced issues in running some of the scripts due to the error: *"Matrix not positive definite"*. This is likely caused by the latest versions of GPyTorch. The configuration that is working on our system uses: `gpytorch 1.0.1, python 3.6.9, torch 1.8.1`. We suggest to replicate this configuration in a conda environment in case you experience the same issue.
+
 
 Installation
 -------------
@@ -119,6 +121,7 @@ python train.py --dataset="cross_char" --method="DKT" --train_n_way=5 --test_n_w
 ```
 
 Note that the parameter `--train_aug` (data augmentation) is not used for `cross_char` but only for `cross`.
+
 
 Acknowledgements
 ---------------
